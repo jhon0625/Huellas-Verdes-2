@@ -140,6 +140,6 @@ pública del backend antes de compilar.
   **Supabase Storage** y guardar la URL en `threats.photo_url` (la
   columna ya existe en el esquema).
 - Si quieres una pantalla para que las ONG creen convocatorias de
-  voluntariado desde la app (hoy se hace insertando directo en
-  `volunteer_calls` desde Supabase), es la siguiente función natural
-  a construir sobre esta base.
+   voluntariado desde la app (hoy se hace insertando directo en
+   `volunteer_calls` desde Supabase), es la siguiente función natural
+   a construir sobre esta base.
