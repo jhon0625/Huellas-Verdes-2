@@ -1,0 +1,3 @@
+& "C:\Program Files\nodejs\npm.cmd" --prefix "c:\Users\sebas\Desktop\huellas-verdes\frontend" run dev
+http://localhost:5173/
+
