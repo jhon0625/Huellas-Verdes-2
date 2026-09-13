@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Leaf } from 'lucide-react'
+import { Leaf, User, Mail, Lock, Users, ArrowRight, CheckCircle, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
 export default function Register() {
@@ -12,6 +12,7 @@ export default function Register() {
   const [error, setError] = useState(null)
   const [done, setDone] = useState(false)
   const [resent, setResent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
@@ -31,8 +32,6 @@ export default function Register() {
       return
     }
 
-    // Si el proyecto de Supabase tiene confirmación de correo desactivada,
-    // ya llega una sesión activa y podemos ajustar el rol y navegar directo.
     if (data.session && data.user) {
       await supabase.from('profiles').update({ role }).eq('id', data.user.id)
       setLoading(false)
@@ -60,89 +59,160 @@ export default function Register() {
 
   if (done) {
     return (
-      <div className="auth-screen">
-        <div className="auth-hero">
-          <div className="mark">
-            <Leaf size={26} />
+      <div className="login-screen">
+        <div className="login-card" style={{ textAlign: 'center' }}>
+          <div className="login-logo">
+            <CheckCircle size={30} />
           </div>
-          <h1>Revisa tu correo</h1>
-          <p>Te enviamos un enlace de confirmación a {email}. Ábrelo para activar tu cuenta y luego inicia sesión.</p>
+          <h1 className="login-title">Revisa tu correo</h1>
+          <p className="login-subtitle">
+            Te enviamos un enlace de confirmación a <strong>{email}</strong>. 
+            Ábrelo para activar tu cuenta e inicia sesión.
+          </p>
+
+          {error && <div className="login-error">{error}</div>}
+          {resent && <div className="login-error" style={{ background: 'rgba(58, 157, 94, 0.12)', borderColor: 'rgba(58, 157, 94, 0.25)', color: '#1a3d2b' }}>
+            Correo reenviado. Revisa también Spam o Promociones.
+          </div>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+            <button 
+              className="login-btn" 
+              type="button" 
+              onClick={() => navigate('/login')}
+            >
+              Ir a iniciar sesión
+              <ArrowRight size={18} />
+            </button>
+            <button 
+              className="login-forgot" 
+              type="button" 
+              onClick={resendConfirmation}
+              style={{ padding: '12px' }}
+            >
+              <RotateCcw size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+              Reenviar correo de confirmación
+            </button>
+          </div>
         </div>
-        <Link className="btn btn-primary" style={{ textAlign: 'center' }} to="/login">
-          Ir a iniciar sesión
-        </Link>
-        <button className="btn" type="button" onClick={resendConfirmation}>
-          Reenviar correo de confirmación
-        </button>
-        {resent && <p className="auth-switch">Correo reenviado. Revisa también Spam o Promociones.</p>}
-        {error && <div className="error-banner">{error}</div>}
       </div>
     )
   }
 
   return (
-    <div className="auth-screen">
-      <div className="auth-hero">
-        <div className="mark">
-          <Leaf size={26} />
+    <div className="login-screen">
+      <div className="login-card">
+        <div className="login-logo">
+          <img src="/logo.png" alt="Huellas Verdes Logo" />
         </div>
-        <h1>Únete a la red</h1>
-        <p>Crea tu cuenta para reportar amenazas, validar las de tu comunidad y sumarte a voluntariados.</p>
+        <h1 className="login-title">Únete a la red</h1>
+        <p className="login-subtitle">
+          Crea tu cuenta para reportar amenazas y sumarte a voluntariados
+        </p>
+
+        {error && <div className="login-error">{error}</div>}
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="login-field">
+            <User size={18} className="login-field-icon" />
+            <input
+              id="fullName"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Tu nombre completo"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="login-field">
+            <Mail size={18} className="login-field-icon" />
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tucorreo@ejemplo.com"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="login-field">
+            <Lock size={18} className="login-field-icon" />
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Contraseña (mínimo 6)"
+              autoComplete="off"
+            />
+            <button 
+              type="button" 
+              className="login-field-toggle" 
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <div className="login-field">
+            <Users size={18} className="login-field-icon" style={{ top: '50%' }} />
+            <select 
+              id="role" 
+              value={role} 
+              onChange={(e) => setRole(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '15px 16px 15px 48px',
+                fontSize: '15px',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: '400',
+                color: '#1a3d2b',
+                background: 'rgba(255, 255, 255, 0.45)',
+                border: '1.5px solid rgba(100, 180, 130, 0.25)',
+                borderRadius: '16px',
+                outline: 'none',
+                transition: 'all 0.3s ease',
+                appearance: 'none',
+                cursor: 'pointer'
+              }}
+              onFocus={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.65)'
+                e.target.style.borderColor = '#5bb97a'
+                e.target.parentElement.querySelector('svg').style.color = '#3a9d5e'
+              }}
+              onBlur={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.45)'
+                e.target.style.borderColor = 'rgba(100, 180, 130, 0.25)'
+                e.target.parentElement.querySelector('svg').style.color = '#6fa880'
+              }}
+            >
+              <option value="ciudadano">Soy Ciudadano / Vecino</option>
+              <option value="ong">Soy ONG / Colectivo Ecologista</option>
+            </select>
+            {/* Custom arrow for select */}
+            <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6fa880' }}>
+              <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <button className="login-btn" type="submit" disabled={loading}>
+            {loading ? 'Creando...' : 'Crear cuenta'}
+            {!loading && <ArrowRight size={18} />}
+          </button>
+        </form>
+
+        <p className="login-footer">
+          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+        </p>
       </div>
-
-      {error && <div className="error-banner">{error}</div>}
-
-      <form onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="fullName">Nombre</label>
-          <input
-            id="fullName"
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Tu nombre"
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="email">Correo</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="tucorreo@ejemplo.com"
-            autoComplete="email"
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="password">Contraseña</label>
-          <input
-            id="password"
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            autoComplete="new-password"
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="role">Me registro como</label>
-          <select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="ciudadano">Ciudadano / vecino del territorio</option>
-            <option value="ong">ONG o colectivo ecologista</option>
-          </select>
-        </div>
-        <button className="btn btn-primary" type="submit" disabled={loading}>
-          {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-        </button>
-      </form>
-
-      <p className="auth-switch">
-        ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-      </p>
     </div>
   )
 }

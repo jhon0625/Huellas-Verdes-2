@@ -7,6 +7,7 @@ import MapView from './pages/MapView'
 import Feed from './pages/Feed'
 import Volunteers from './pages/Volunteers'
 import Profile from './pages/Profile'
+import ResetPassword from './pages/ResetPassword'
 import { isSupabaseConfigured } from './supabaseClient'
 
 function ConfigurationRequired() {
@@ -61,6 +62,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
           <Route path="/registro" element={<PublicOnly><Register /></PublicOnly>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/mapa" element={<PrivateArea><MapView /></PrivateArea>} />
           <Route path="/feed" element={<PrivateArea><Feed /></PrivateArea>} />
