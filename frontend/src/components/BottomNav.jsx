@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { MapPin, ListTree, UserRound, HandHeart } from 'lucide-react'
+import { MapPin, ListTree, UserRound, HandHeart, Menu, X } from 'lucide-react'
 
 const items = [
   { to: '/mapa', label: 'Mapa', icon: MapPin },
@@ -9,18 +10,35 @@ const items = [
 ]
 
 export default function BottomNav() {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <nav className="bottom-nav">
-      {items.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-        >
-          <Icon size={20} strokeWidth={2} />
-          <span>{label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      {/* Botón flotante para abrir el menú cuando está colapsado */}
+      <button 
+        className={`bottom-nav-toggle ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Abrir menú"
+      >
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Menú inferior colapsable tipo píldora / glassmorphism */}
+      <nav className={`bottom-nav-glass ${isOpen ? 'expanded' : 'collapsed'}`}>
+        {items.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) => `nav-item-glass${isActive ? ' active' : ''}`}
+            onClick={() => setIsOpen(false)} // Cierra el menú al navegar
+          >
+            <div className="icon-wrapper">
+              <Icon size={22} strokeWidth={2.5} />
+            </div>
+            <span className="nav-label">{label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </>
   )
 }

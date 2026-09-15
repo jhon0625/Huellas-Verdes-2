@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import TopBar from '../components/TopBar'
 import ThreatCard from '../components/ThreatCard'
-import NewThreatModal from '../components/NewThreatModal'
 import { useGeolocation } from '../lib/useGeolocation'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
@@ -15,9 +15,7 @@ export default function Feed() {
   const [myVotes, setMyVotes] = useState({})
   const [loading, setLoading] = useState(true)
   const [votingId, setVotingId] = useState(null)
-  const [draftPosition, setDraftPosition] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState(null)
+  const navigate = useNavigate()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -53,26 +51,6 @@ export default function Feed() {
     }
   }
 
-  async function handleCreateThreat(payload) {
-    setSubmitting(true)
-    setFormError(null)
-    const { error } = await supabase.from('threats').insert({
-      reporter_id: user.id,
-      title: payload.title,
-      description: payload.description || null,
-      category: payload.category,
-      lat: payload.lat,
-      lng: payload.lng,
-    })
-    setSubmitting(false)
-    if (error) {
-      setFormError(`No se pudo publicar el reporte: ${error.message}`)
-      return
-    }
-    setDraftPosition(null)
-    load()
-  }
-
   return (
     <>
       <TopBar title="Reportes cercanos" subtitle="Valida lo que otros vecinos han visto" />
@@ -81,8 +59,7 @@ export default function Feed() {
         className="btn btn-primary"
         type="button"
         onClick={() => {
-          setFormError(null)
-          setDraftPosition(position)
+          navigate(`/reportar?lat=${position.lat}&lng=${position.lng}`)
         }}
         style={{ margin: '14px 20px 0', width: 'calc(100% - 40px)' }}
       >
@@ -111,16 +88,6 @@ export default function Feed() {
             />
           ))}
         </div>
-      )}
-
-      {draftPosition && (
-        <NewThreatModal
-          position={draftPosition}
-          onClose={() => setDraftPosition(null)}
-          onSubmit={handleCreateThreat}
-          submitting={submitting}
-          error={formError}
-        />
       )}
     </>
   )
