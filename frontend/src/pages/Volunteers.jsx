@@ -18,8 +18,17 @@ export default function Volunteers() {
   }, [position.lat, position.lng])
 
   return (
-    <>
+    <div className="section-screen section-screen-volunteers">
       <TopBar title="Voluntariados" subtitle="Convocatorias activas de ONG cerca de ti" />
+
+      <div className="page-intro page-intro-volunteers">
+        <div>
+          <span className="page-intro-kicker">Acción colectiva</span>
+          <h2>Manos que cuidan el territorio</h2>
+          <p>Encuentra una causa cercana y participa en el cambio.</p>
+        </div>
+        <HandHeart size={27} />
+      </div>
 
       {loading && <div className="loading-row">Buscando convocatorias...</div>}
 
@@ -37,7 +46,7 @@ export default function Volunteers() {
       {!loading && calls.length > 0 && (
         <div className="threat-list">
           {calls.map((c) => (
-            <article key={c.id} className="threat-card">
+            <article key={c.id} className="threat-card volunteer-card">
               <div className="row-top">
                 <h3>{c.title}</h3>
               </div>
@@ -52,6 +61,6 @@ export default function Volunteers() {
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }

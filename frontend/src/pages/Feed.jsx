@@ -52,16 +52,24 @@ export default function Feed() {
   }
 
   return (
-    <>
+    <div className="section-screen section-screen-reports">
       <TopBar title="Reportes cercanos" subtitle="Valida lo que otros vecinos han visto" />
 
+      <div className="page-intro">
+        <div>
+          <span className="page-intro-kicker">Vigilancia comunitaria</span>
+          <h2>Lo que pasa cerca importa</h2>
+          <p>Ayuda a confirmar las señales que necesitan atención.</p>
+        </div>
+        <span className="page-intro-count">{threats.length}<small>cerca</small></span>
+      </div>
+
       <button
-        className="btn btn-primary"
+        className="btn btn-primary page-primary-action"
         type="button"
         onClick={() => {
           navigate(`/reportar?lat=${position.lat}&lng=${position.lng}`)
         }}
-        style={{ margin: '14px 20px 0', width: 'calc(100% - 40px)' }}
       >
         <Plus size={18} />
         Nuevo reporte
@@ -89,6 +97,6 @@ export default function Feed() {
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }
