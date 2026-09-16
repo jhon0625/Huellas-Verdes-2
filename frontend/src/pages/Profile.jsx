@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LogOut } from 'lucide-react'
+import { Leaf, LogOut } from 'lucide-react'
 import TopBar from '../components/TopBar'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../lib/api'
@@ -13,17 +13,18 @@ export default function Profile() {
   }, [])
 
   return (
-    <>
+    <div className="section-screen section-screen-profile">
       <TopBar title="Tu perfil" />
 
       <div className="profile-card">
         <div className="profile-avatar">{profile?.avatar_emoji || '🌱'}</div>
-        <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 4px' }}>
+        <h3 className="profile-name">
           {profile?.full_name || user?.email}
         </h3>
-        <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, margin: 0 }}>
+        <p className="profile-role">
           {profile?.role === 'ong' ? 'ONG / colectivo ecologista' : 'Ciudadano del territorio'}
         </p>
+        <div className="profile-badge"><Leaf size={13} /> Miembro activo de la comunidad</div>
       </div>
 
       <p className="section-title">Impacto de la comunidad</p>
@@ -42,12 +43,12 @@ export default function Profile() {
         </div>
       </div>
 
-      <div style={{ padding: '4px 20px' }}>
-        <button className="btn btn-ghost" style={{ width: '100%' }} onClick={signOut}>
+      <div className="profile-actions">
+        <button className="btn btn-ghost" onClick={signOut}>
           <LogOut size={16} style={{ marginRight: 6 }} />
           Cerrar sesión
         </button>
       </div>
-    </>
+    </div>
   )
 }

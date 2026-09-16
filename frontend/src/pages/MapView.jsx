@@ -67,12 +67,12 @@ export default function MapView() {
           <img src="/logo.png" alt="Huellas Verdes" className="dashboard-logo-img" />
         </div>
         <div className="dashboard-header-text">
+          <span className="dashboard-kicker">Panel ciudadano</span>
           <h1 className="dashboard-title">Huellas Verdes</h1>
-          <p className="dashboard-subtitle">
-            {status === 'locating'
-              ? 'Ubicando tu posición…'
-              : 'Explora y protege tu entorno'}
-          </p>
+          <div className="dashboard-status">
+            <span className={`dashboard-status-dot ${status === 'locating' ? 'is-loading' : ''}`} />
+            {status === 'locating' ? 'Ubicando tu posición…' : 'Tu zona está activa'}
+          </div>
         </div>
       </header>
 
@@ -97,11 +97,28 @@ export default function MapView() {
         </div>
       </div>
 
+      <section className="dashboard-mission-card" aria-label="Misión ambiental">
+        <div className="dashboard-mission-icon">
+          <Leaf size={21} />
+        </div>
+        <div className="dashboard-mission-copy">
+          <span className="dashboard-mission-eyebrow">Cuidar empieza cerca</span>
+          <h2>Haz visible lo que necesita protección</h2>
+          <p>Cada observación ayuda a que la comunidad reaccione a tiempo.</p>
+          <div className="dashboard-eco-tags">
+            <span>Bosques</span>
+            <span>Agua</span>
+            <span>Fauna</span>
+          </div>
+        </div>
+      </section>
+
       {/* Map card */}
       <div className="dashboard-map-card">
         <div className="dashboard-map-label">
           <MapPin size={14} />
           <span>Mapa interactivo</span>
+          <span className="dashboard-map-label-hint">Toca para reportar</span>
         </div>
         <div className="dashboard-map-container">
           <MapContainer
@@ -126,6 +143,10 @@ export default function MapView() {
             })}
             <ClickHandler />
           </MapContainer>
+        </div>
+        <div className="dashboard-map-meta">
+          <span><i className="map-key map-key-user" />Tu ubicación</span>
+          <span><i className="map-key map-key-threat" />Amenaza reportada</span>
         </div>
       </div>
 
