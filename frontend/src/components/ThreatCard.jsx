@@ -1,13 +1,11 @@
 import { ThumbsUp, ThumbsDown, MapPin } from 'lucide-react'
 
 export const CATEGORY_LABELS = {
+  incendios_forestales: 'Incendios forestales',
+  animales_en_peligro: 'Animales en peligro',
   deforestacion: 'Deforestación',
-  quema: 'Quema / incendio',
-  vertimiento: 'Vertimiento de residuos líquidos',
-  mineria_ilegal: 'Minería ilegal',
-  caza_furtiva: 'Caza furtiva',
-  residuos: 'Basura / escombros',
-  otro: 'Otro',
+  dano_ecosistemas: 'Daño a ecosistemas',
+  reforestacion: 'Reforestación',
 }
 
 const STATUS_LABELS = {

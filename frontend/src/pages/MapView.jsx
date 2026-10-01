@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useNavigate } from 'react-router-dom'
@@ -92,7 +92,7 @@ export default function MapView() {
         </div>
         <div className="dashboard-stat-card">
           <Leaf size={18} color="#2E5A3D" />
-          <span className="dashboard-stat-num">25km</span>
+          <span className="dashboard-stat-num">5km</span>
           <span className="dashboard-stat-label">Radio</span>
         </div>
       </div>
@@ -106,51 +106,16 @@ export default function MapView() {
           <h2>Haz visible lo que necesita protección</h2>
           <p>Cada observación ayuda a que la comunidad reaccione a tiempo.</p>
           <div className="dashboard-eco-tags">
-            <span>Bosques</span>
-            <span>Agua</span>
-            <span>Fauna</span>
+            <span>Bosques Talados</span>
+            <span>Agua Contaminada</span>
+            <span>Fauna Animal</span>
+            <span>Incendios Forestales</span>
           </div>
         </div>
       </section>
 
-      {/* Map card */}
-      <div className="dashboard-map-card">
-        <div className="dashboard-map-label">
-          <MapPin size={14} />
-          <span>Mapa interactivo</span>
-          <span className="dashboard-map-label-hint">Toca para reportar</span>
-        </div>
-        <div className="dashboard-map-container">
-          <MapContainer
-            center={position}
-            zoom={14}
-            style={{ height: '100%', width: '100%' }}
-            zoomControl={false}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={position} icon={userIcon} />
-            {threats.map(function (t) {
-              return (
-                <Marker
-                  key={t.id}
-                  position={{ lat: t.lat, lng: t.lng }}
-                  icon={pawIcon}
-                />
-              )
-            })}
-            <ClickHandler />
-          </MapContainer>
-        </div>
-        <div className="dashboard-map-meta">
-          <span><i className="map-key map-key-user" />Tu ubicación</span>
-          <span><i className="map-key map-key-threat" />Amenaza reportada</span>
-        </div>
-      </div>
 
-      {/* Instructions card */}
+    {/* Instructions card */}
       <div className="dashboard-instructions-card">
         <h3 className="dashboard-instructions-title">
           <Leaf size={16} />
@@ -171,6 +136,57 @@ export default function MapView() {
           </div>
         </div>
       </div>
+
+
+      {/* Map card */}
+      <div className="dashboard-map-card">
+        <div className="dashboard-map-label">
+          <MapPin size={14} />
+          <span>Mapa interactivo</span>
+          <span className="dashboard-map-label-hint">Toca para reportar</span>
+        </div>
+        <div className="dashboard-map-container">
+          <MapContainer
+            center={position}
+            zoom={14}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Circle
+              center={[position.lat, position.lng]}
+              radius={5000}
+              pathOptions={{
+                color: '#2a5e9b',
+                fillColor: '#2a5e9b',
+                fillOpacity: 0.15,
+                weight: 2,
+                dashArray: '6, 6',
+              }}
+            />
+            <Marker position={position} icon={userIcon} />
+            {threats.map(function (t) {
+              return (
+                <Marker
+                  key={t.id}
+                  position={{ lat: t.lat, lng: t.lng }}
+                  icon={pawIcon}
+                />
+              )
+            })}
+            <ClickHandler />
+          </MapContainer>
+        </div>
+        <div className="dashboard-map-meta">
+          <span><i className="map-key map-key-user" />Tu ubicación</span>
+          <span><i className="map-key map-key-threat" />Amenaza reportada</span>
+        </div>
+      </div>
+
+      
 
       {/* Quick action button */}
       <button
