@@ -58,7 +58,9 @@ create table if not exists public.threats (
   reporter_id uuid not null references auth.users (id) on delete cascade,
   title text not null,
   description text,
-  category text not null,
+  category text not null check (
+    category in ('deforestacion', 'quema', 'vertimiento', 'mineria_ilegal', 'caza_furtiva', 'residuos', 'otro')
+  ),
   lat double precision not null,
   lng double precision not null,
   status text not null default 'sin_validar' check (
@@ -67,42 +69,6 @@ create table if not exists public.threats (
   photo_url text,
   created_at timestamptz not null default now()
 );
-
-alter table public.threats
-  drop constraint if exists threats_category_check;
-
-alter table public.threats
-  add constraint threats_category_check check (
-    category in (
-      'incendios_forestales', 'animales_en_peligro', 'deforestacion',
-      'dano_ecosistemas', 'reforestacion', 'quema', 'vertimiento',
-      'mineria_ilegal', 'caza_furtiva', 'residuos', 'otro'
-    )
-  );
-
-insert into storage.buckets (id, name, public, file_size_limit)
-values ('threat-photos', 'threat-photos', true, 5242880)
-on conflict (id) do update
-  set public = excluded.public,
-      file_size_limit = excluded.file_size_limit;
-
-drop policy if exists "Usuarios autenticados pueden subir sus fotos de reportes"
-  on storage.objects;
-create policy "Usuarios autenticados pueden subir sus fotos de reportes"
-  on storage.objects for insert to authenticated
-  with check (
-    bucket_id = 'threat-photos'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
-drop policy if exists "Usuarios pueden borrar sus fotos de reportes"
-  on storage.objects;
-create policy "Usuarios pueden borrar sus fotos de reportes"
-  on storage.objects for delete to authenticated
-  using (
-    bucket_id = 'threat-photos'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
 
 create index if not exists threats_created_at_idx on public.threats (created_at desc);
 create index if not exists threats_lat_lng_idx on public.threats (lat, lng);
