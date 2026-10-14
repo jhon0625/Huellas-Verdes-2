@@ -692,7 +692,7 @@ a {
 
 .dashboard-stat-num {
   color: var(--forest);
-  font-family: var(--font-display);
+  font-family: 'Inter', sans-serif;
   font-size: 20px;
   font-weight: 700;
   line-height: 1;

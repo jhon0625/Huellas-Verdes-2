@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 
-// Coordenada por defecto: se usa mientras el navegador resuelve el GPS
-// o si el usuario no da permiso (Medellín, Colombia, como referencia
-// neutral para el demo).
-const FALLBACK = { lat: 6.2442, lng: -75.5812 }
+// Coordenada por defecto: El Peñol, Oriente Antioqueño.
+// Se usa mientras el navegador resuelve el GPS o si el usuario no da permiso.
+const FALLBACK = { lat: 6.2179, lng: -75.2435 }
 
 export function useGeolocation() {
   const [position, setPosition] = useState(FALLBACK)

@@ -1,13 +1,11 @@
 import { ThumbsUp, ThumbsDown, MapPin } from 'lucide-react'
 
 export const CATEGORY_LABELS = {
+  incendios_forestales: 'Incendios forestales',
+  animales_en_peligro: 'Animales en peligro',
   deforestacion: 'Deforestación',
-  quema: 'Quema / incendio',
-  vertimiento: 'Vertimiento de residuos líquidos',
-  mineria_ilegal: 'Minería ilegal',
-  caza_furtiva: 'Caza furtiva',
-  residuos: 'Basura / escombros',
-  otro: 'Otro',
+  dano_ecosistemas: 'Daño a ecosistemas',
+  reforestacion: 'Reforestación',
 }
 
 const STATUS_LABELS = {
@@ -40,6 +38,21 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
         <span className={`badge badge-status-${status}`}>{STATUS_LABELS[status] || status}</span>
       </div>
 
+      {threat.photo_url && (
+        <img
+          src={threat.photo_url}
+          alt={`Evidencia del reporte: ${title}`}
+          style={{
+            display: 'block',
+            width: '100%',
+            maxHeight: 240,
+            objectFit: 'cover',
+            borderRadius: 8,
+            marginTop: 12,
+          }}
+        />
+      )}
+
       {description && <p className="desc">{description}</p>}
 
       <div className="meta-row">
@@ -60,7 +73,7 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
             onClick={() => onVote(threat.id, true)}
           >
             <ThumbsUp size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
-            Yo también lo veo ({confirmations})
+            Sí, estoy viendo ({confirmations})
           </button>
           <button
             className="btn-dismiss"
@@ -68,7 +81,7 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
             onClick={() => onVote(threat.id, false)}
           >
             <ThumbsDown size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
-            No lo veo ({dismissals})
+            No lo estoy viendo ({dismissals})
           </button>
         </div>
       )}
