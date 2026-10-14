@@ -45,6 +45,12 @@ huellas-verdes/
 2. Ve a **SQL Editor** → **New query**, pega **todo** el contenido de
    `supabase/schema.sql` y dale a **Run**. Esto crea las tablas,
    políticas de seguridad y triggers.
+   - Si el proyecto ya estaba creado, ejecuta solo el contenido de
+     `supabase/update_threat_categories.sql` para permitir las categorías
+     actuales del formulario de reportes.
+   - Para habilitar las fotos en un proyecto existente, ejecuta también
+     `supabase/enable_threat_photo_storage.sql`. El bucket es público para
+     que la URL guardada en cada reporte pueda abrirse.
 3. Ve a **Authentication → Providers** y confirma que **Email** esté
    habilitado (viene así por defecto).
    - Opcional para probar más rápido: en **Authentication → Settings**
