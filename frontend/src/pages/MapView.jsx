@@ -1,12 +1,28 @@
 import { useEffect, useState, useCallback } from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, AlertTriangle, Leaf, ChevronRight } from 'lucide-react'
 import { useGeolocation } from '../lib/useGeolocation'
 import { useAuth } from '../context/AuthContext'
-import { api } from '../lib/api'
+import { supabase } from '../supabaseClient'
+import { CATEGORY_LABELS } from '../components/ThreatCard'
+
+const THREAT_RADIUS_KM = 25
+
+function distanceKm(from, to) {
+  const radians = (degrees) => (degrees * Math.PI) / 180
+  const latitudeDelta = radians(to.lat - from.lat)
+  const longitudeDelta = radians(to.lng - from.lng)
+  const arc =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(from.lat)) *
+      Math.cos(radians(to.lat)) *
+      Math.sin(longitudeDelta / 2) ** 2
+
+  return 6371 * 2 * Math.atan2(Math.sqrt(arc), Math.sqrt(1 - arc))
+}
 
 // Custom dog-paw icon (pre-built SVG as data URI)
 const PAW_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="%231F3D2B" d="M226.5 92.9c14.3 42.9-.3 86.2-32.6 96.8s-70.1-15.6-84.4-58.5 .3-86.2 32.6-96.8 70.1 15.6 84.4 58.5zM100.4 198.6c18.9 32.4 14.3 70.1-10.2 84.1s-59.7-.9-78.5-33.3S-2.7 179.3 21.8 165.3s59.7 .9 78.5 33.3zm327.2 0c18.9-32.4 53.9-45.2 78.5-33.3s29.1 51.7 10.2 84.1-53.9 45.2-78.5 33.3-29.1-51.7-10.2-84.1zM285.5 92.9c14.3-42.9 51.7-70.7 84.4-58.5s46.9 53.9 32.6 96.8-51.7 70.7-84.4 58.5-46.9-53.9-32.6-96.8zM405.7 310.5c-2.6-33.3-27.8-55-65.4-83.2-5.6-4.2-11.5-8.6-17.7-13.3-10.1-7.7-37.5-27.3-61.5-27.3h-8.8c-41.4 0-79 27.3-79.3 27.5-6.2 4.7-12.1 9.1-17.7 13.3-37.6 28.2-62.8 49.9-65.4 83.2-1.5 19.3 6.3 39.6 21.7 56.9 15.5 17.4 36.5 29.2 59.1 33.1 9.7 1.7 20.2 2.5 31.4 2.5 26.2 0 49.5-5.8 59.5-8.4 3.5-.9 5.8-1.5 7.5-1.5s4 .6 7.5 1.5c10 2.6 33.3 8.4 59.5 8.4 11.2 0 21.7-.9 31.4-2.5 22.6-3.9 43.6-15.7 59.1-33.1 15.4-17.3 23.2-37.6 21.7-56.9z"/></svg>'
@@ -28,20 +44,58 @@ const userIcon = new L.Icon({
   iconAnchor: [10, 10],
 })
 
+function MapCenterController({ center }) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.setView([center.lat, center.lng], map.getZoom())
+  }, [center.lat, center.lng, map])
+
+  return null
+}
+
 export default function MapView() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { position, status } = useGeolocation()
   const { user } = useAuth()
   const [threats, setThreats] = useState([])
+  const focusLat = Number(searchParams.get('lat'))
+  const focusLng = Number(searchParams.get('lng'))
+  const hasFocus =
+    searchParams.has('lat') &&
+    searchParams.has('lng') &&
+    Number.isFinite(focusLat) &&
+    Number.isFinite(focusLng)
+  const mapCenter = hasFocus ? { lat: focusLat, lng: focusLng } : position
 
   const loadThreats = useCallback(async () => {
     try {
-      const data = await api.threatsNearby(position.lat, position.lng, 25)
-      setThreats(data)
+      const latitudeDelta = THREAT_RADIUS_KM / 110.574
+      const longitudeDelta = Math.min(
+        180,
+        THREAT_RADIUS_KM /
+          (111.32 * Math.max(Math.cos((mapCenter.lat * Math.PI) / 180), 0.01))
+      )
+      const { data, error } = await supabase
+        .from('threats')
+        .select('id, title, category, lat, lng, status, photo_url, created_at')
+        .gte('lat', mapCenter.lat - latitudeDelta)
+        .lte('lat', mapCenter.lat + latitudeDelta)
+        .gte('lng', mapCenter.lng - longitudeDelta)
+        .lte('lng', mapCenter.lng + longitudeDelta)
+
+      if (error) throw error
+
+      setThreats(
+        (data || []).filter(
+          (threat) => distanceKm(mapCenter, { lat: threat.lat, lng: threat.lng }) <= THREAT_RADIUS_KM
+        )
+      )
     } catch (e) {
       console.error('Error loading threats', e)
     }
-  }, [position.lat, position.lng])
+  }, [mapCenter.lat, mapCenter.lng])
 
   useEffect(() => {
     loadThreats()
@@ -147,17 +201,18 @@ export default function MapView() {
         </div>
         <div className="dashboard-map-container">
           <MapContainer
-            center={position}
+            center={mapCenter}
             zoom={14}
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
           >
+            <MapCenterController center={mapCenter} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <Circle
-              center={[position.lat, position.lng]}
+              center={[mapCenter.lat, mapCenter.lng]}
               radius={5000}
               pathOptions={{
                 color: '#2a5e9b',
@@ -174,7 +229,13 @@ export default function MapView() {
                   key={t.id}
                   position={{ lat: t.lat, lng: t.lng }}
                   icon={pawIcon}
-                />
+                >
+                  <Popup>
+                    <strong>{t.title}</strong>
+                    <br />
+                    {CATEGORY_LABELS[t.category] || t.category}
+                  </Popup>
+                </Marker>
               )
             })}
             <ClickHandler />

@@ -5,6 +5,24 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { CATEGORY_LABELS } from '../components/ThreatCard'
 
+const PHOTO_BUCKET = 'threat-photos'
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024
+
+function createPhotoId() {
+  const cryptoApi = globalThis.crypto
+  if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID()
+
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16))
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // Campos adicionales por categoría para hacer el formulario dinámico
 const CATEGORY_FIELDS = {
   incendios_forestales: [
@@ -146,16 +164,35 @@ export default function NewReport() {
     setDynamicData({})
   }, [category])
 
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
+
   const handleDynamicChange = (id, value) => {
     setDynamicData((prev) => ({ ...prev, [id]: value }))
   }
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setImageFile(file)
-      setImagePreview(URL.createObjectURL(file))
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Selecciona un archivo de imagen válido.')
+      e.target.value = ''
+      return
     }
+
+    if (file.size > MAX_PHOTO_SIZE) {
+      setError('La foto no puede superar los 5 MB.')
+      e.target.value = ''
+      return
+    }
+
+    setError(null)
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   const handleVideoChange = (e) => {
@@ -229,30 +266,63 @@ export default function NewReport() {
       fullDescription += '\n\nDetalles adicionales:\n' + details
     }
 
-    const { error: insertError } = await supabase.from('threats').insert({
-      reporter_id: user.id,
-      title: title,
-      description: fullDescription || null,
-      category: category,
-      lat: parseFloat(lat),
-      lng: parseFloat(lng),
-      // image_url: imageUrl,
-      // video_url: videoUrl
-    })
+    let uploadedPhotoPath = null
 
-    setSubmitting(false)
+    try {
+      let photoUrl = null
 
-    if (insertError) {
-      setError(
-        'No se pudo publicar el reporte. Intenta de nuevo. Detalles: ' +
-          insertError.message
-      )
+      if (imageFile) {
+        const photoPath = `${user.id}/${createPhotoId()}`
+        const { error: uploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(photoPath, imageFile, {
+            cacheControl: '3600',
+            contentType: imageFile.type,
+            upsert: false,
+          })
+
+        if (uploadError) {
+          throw new Error('No se pudo subir la foto. Detalles: ' + uploadError.message)
+        }
+
+        uploadedPhotoPath = photoPath
+        photoUrl = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(photoPath).data.publicUrl
+      }
+
+      const { error: insertError } = await supabase.from('threats').insert({
+        reporter_id: user.id,
+        title: title,
+        description: fullDescription || null,
+        category: category,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        photo_url: photoUrl,
+      })
+
+      if (insertError) {
+        throw new Error(
+          'No se pudo publicar el reporte. Intenta de nuevo. Detalles: ' +
+            insertError.message
+        )
+      }
+    } catch (submitError) {
+      if (uploadedPhotoPath) {
+        const { error: cleanupError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .remove([uploadedPhotoPath])
+        if (cleanupError) console.error('No se pudo limpiar la foto subida:', cleanupError)
+      }
+
+      setError(submitError.message || 'No se pudo publicar el reporte. Intenta de nuevo.')
+      setSubmitting(false)
       return
     }
 
+    setSubmitting(false)
+
     setSuccess(true)
     setTimeout(() => {
-      navigate('/mapa')
+      navigate(`/mapa?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
     }, 2500)
   }
 
@@ -462,6 +532,7 @@ export default function NewReport() {
                   type="file"
                   accept="image/*"
                   capture="environment"
+                  disabled={submitting}
                   onChange={handleImageChange}
                   style={{
                     opacity: 0,
