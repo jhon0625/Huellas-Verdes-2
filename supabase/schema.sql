@@ -18,6 +18,7 @@ create table if not exists public.profiles (
   full_name text,
   avatar_emoji text default '🌱',
   role text not null default 'ciudadano' check (role in ('ciudadano', 'ong')),
+  huellas integer not null default 0 check (huellas >= 0),
   created_at timestamptz not null default now()
 );
 
@@ -63,6 +64,9 @@ create table if not exists public.threats (
   lng double precision not null,
   status text not null default 'sin_validar' check (
     status in ('sin_validar', 'confirmado', 'descartado', 'resuelto')
+  ),
+  reward_status text not null default 'none' check (
+    reward_status in ('none', 'rewarded', 'penalized')
   ),
   photo_url text,
   created_at timestamptz not null default now()

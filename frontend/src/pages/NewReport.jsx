@@ -3,6 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Camera, Video, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useNetwork } from '../context/NetworkContext'
+import { savePendingReport } from '../lib/offlineDb'
+import { syncAllPending } from '../lib/syncEngine'
 import { CATEGORY_LABELS } from '../components/ThreatCard'
 
 const PHOTO_BUCKET = 'threat-photos'
@@ -137,6 +140,7 @@ export default function NewReport() {
   const lng = searchParams.get('lng')
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { refreshPendingCount } = useNetwork()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -158,6 +162,10 @@ export default function NewReport() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [successInfo, setSuccessInfo] = useState({
+    title: '¡Reporte guardado!',
+    message: 'Gracias por ayudar a proteger nuestro entorno.',
+  })
 
   // Reset campos dinámicos al cambiar de categoría
   useEffect(() => {
@@ -266,64 +274,62 @@ export default function NewReport() {
       fullDescription += '\n\nDetalles adicionales:\n' + details
     }
 
-    let uploadedPhotoPath = null
-
     try {
-      let photoUrl = null
-
-      if (imageFile) {
-        const photoPath = `${user.id}/${createPhotoId()}`
-        const { error: uploadError } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .upload(photoPath, imageFile, {
-            cacheControl: '3600',
-            contentType: imageFile.type,
-            upsert: false,
-          })
-
-        if (uploadError) {
-          throw new Error('No se pudo subir la foto. Detalles: ' + uploadError.message)
-        }
-
-        uploadedPhotoPath = photoPath
-        photoUrl = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(photoPath).data.publicUrl
-      }
-
-      const { error: insertError } = await supabase.from('threats').insert({
+      // 1. LOCAL-FIRST: Siempre persistir primero en IndexedDB
+      const reportData = {
         reporter_id: user.id,
-        title: title,
+        title,
         description: fullDescription || null,
-        category: category,
+        category,
         lat: parseFloat(lat),
         lng: parseFloat(lng),
-        photo_url: photoUrl,
-      })
-
-      if (insertError) {
-        throw new Error(
-          'No se pudo publicar el reporte. Intenta de nuevo. Detalles: ' +
-            insertError.message
-        )
-      }
-    } catch (submitError) {
-      if (uploadedPhotoPath) {
-        const { error: cleanupError } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .remove([uploadedPhotoPath])
-        if (cleanupError) console.error('No se pudo limpiar la foto subida:', cleanupError)
       }
 
-      setError(submitError.message || 'No se pudo publicar el reporte. Intenta de nuevo.')
+      await savePendingReport(reportData, imageFile)
+      await refreshPendingCount?.()
+
+      // 2. Si hay conexión a internet, intentar sincronizar de inmediato
+      if (navigator.onLine && supabase) {
+        try {
+          const { synced } = await syncAllPending(supabase)
+          await refreshPendingCount?.()
+
+          if (synced > 0) {
+            setSuccessInfo({
+              title: '¡Reporte publicado!',
+              message: 'Tu reporte fue sincronizado con éxito. Redirigiendo al mapa...',
+            })
+          } else {
+            setSuccessInfo({
+              title: '¡Reporte guardado en el dispositivo!',
+              message: 'Tu reporte está seguro localmente y se subirá tan pronto se estabilice la conexión.',
+            })
+          }
+        } catch (syncErr) {
+          console.warn('Sincronización en segundo plano pendiente:', syncErr)
+          setSuccessInfo({
+            title: '¡Reporte guardado en tu teléfono!',
+            message: 'Tu reporte quedó guardado y se subirá automáticamente cuando haya conexión estable.',
+          })
+        }
+      } else {
+        // Modo totalmente offline
+        setSuccessInfo({
+          title: '¡Reporte guardado sin conexión!',
+          message: 'Estás sin internet, pero tu reporte se guardó de forma segura y se enviará automáticamente al recuperar red.',
+        })
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        navigate(`/mapa?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
+      }, 2500)
+    } catch (err) {
+      console.error('Error guardando reporte offline:', err)
+      setError('No se pudo guardar el reporte localmente. Intenta de nuevo.')
+    } finally {
       setSubmitting(false)
-      return
     }
-
-    setSubmitting(false)
-
-    setSuccess(true)
-    setTimeout(() => {
-      navigate(`/mapa?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`)
-    }, 2500)
   }
 
   if (success) {
@@ -333,10 +339,9 @@ export default function NewReport() {
           <div className="login-logo">
             <CheckCircle size={30} color="#3a9d5e" />
           </div>
-          <h1 className="login-title">¡Reporte publicado!</h1>
+          <h1 className="login-title">{successInfo.title}</h1>
           <p className="login-subtitle">
-            Gracias por ayudar a proteger nuestro entorno. Redirigiendo al
-            mapa...
+            {successInfo.message}
           </p>
         </div>
       </div>

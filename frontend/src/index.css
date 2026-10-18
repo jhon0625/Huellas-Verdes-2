@@ -1560,7 +1560,7 @@ a {
   color: #245b39;
   background: rgba(243, 228, 190, 0.92);
   border-radius: 16px 16px 16px 5px;
-  font-family: var(--font-display);
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
   font-weight: 700;
 }
