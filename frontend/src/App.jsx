@@ -10,6 +10,7 @@ import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import NewReport from './pages/NewReport'
 import { isSupabaseConfigured } from './supabaseClient'
+import { NetworkProvider } from './context/NetworkContext'
 
 function ConfigurationRequired() {
   return (
@@ -59,21 +60,23 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <div className="app-shell">
-        <Routes>
-          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-          <Route path="/registro" element={<PublicOnly><Register /></PublicOnly>} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+      <NetworkProvider>
+        <div className="app-shell">
+          <Routes>
+            <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+            <Route path="/registro" element={<PublicOnly><Register /></PublicOnly>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route path="/mapa" element={<PrivateArea><MapView /></PrivateArea>} />
-          <Route path="/reportar" element={<PrivateArea><NewReport /></PrivateArea>} />
-          <Route path="/feed" element={<PrivateArea><Feed /></PrivateArea>} />
-          <Route path="/voluntariados" element={<PrivateArea><Volunteers /></PrivateArea>} />
-          <Route path="/perfil" element={<PrivateArea><Profile /></PrivateArea>} />
+            <Route path="/mapa" element={<PrivateArea><MapView /></PrivateArea>} />
+            <Route path="/reportar" element={<PrivateArea><NewReport /></PrivateArea>} />
+            <Route path="/feed" element={<PrivateArea><Feed /></PrivateArea>} />
+            <Route path="/voluntariados" element={<PrivateArea><Volunteers /></PrivateArea>} />
+            <Route path="/perfil" element={<PrivateArea><Profile /></PrivateArea>} />
 
-          <Route path="*" element={<Navigate to="/mapa" replace />} />
-        </Routes>
-      </div>
+            <Route path="*" element={<Navigate to="/mapa" replace />} />
+          </Routes>
+        </div>
+      </NetworkProvider>
     </AuthProvider>
   )
 }

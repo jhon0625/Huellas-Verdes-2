@@ -8,6 +8,9 @@ import { useGeolocation } from '../lib/useGeolocation'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { CATEGORY_LABELS } from '../components/ThreatCard'
+import { getAllLocalReports, REPORT_TTL_MS } from '../lib/offlineDb'
+import { useNetwork } from '../context/NetworkContext'
+import HuellaIcon from '../components/HuellaIcon'
 
 const THREAT_RADIUS_KM = 25
 
@@ -58,7 +61,9 @@ export default function MapView() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { position, status } = useGeolocation()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const { syncVersion } = useNetwork()
+  const huellas = profile?.huellas ?? 0
   const [threats, setThreats] = useState([])
   const focusLat = Number(searchParams.get('lat'))
   const focusLng = Number(searchParams.get('lng'))
@@ -71,24 +76,63 @@ export default function MapView() {
 
   const loadThreats = useCallback(async () => {
     try {
+      const TWO_HOURS_MS = REPORT_TTL_MS || 2 * 60 * 60 * 1000
+      const cutoff = new Date(Date.now() - TWO_HOURS_MS).toISOString()
+
       const latitudeDelta = THREAT_RADIUS_KM / 110.574
       const longitudeDelta = Math.min(
         180,
         THREAT_RADIUS_KM /
           (111.32 * Math.max(Math.cos((mapCenter.lat * Math.PI) / 180), 0.01))
       )
-      const { data, error } = await supabase
-        .from('threats')
-        .select('id, title, category, lat, lng, status, photo_url, created_at')
-        .gte('lat', mapCenter.lat - latitudeDelta)
-        .lte('lat', mapCenter.lat + latitudeDelta)
-        .gte('lng', mapCenter.lng - longitudeDelta)
-        .lte('lng', mapCenter.lng + longitudeDelta)
 
-      if (error) throw error
+      let remoteThreats = []
+      if (supabase && navigator.onLine) {
+        try {
+          const { data, error } = await supabase
+            .from('threats')
+            .select('id, title, category, lat, lng, status, photo_url, created_at')
+            .gte('created_at', cutoff)
+            .gte('lat', mapCenter.lat - latitudeDelta)
+            .lte('lat', mapCenter.lat + latitudeDelta)
+            .gte('lng', mapCenter.lng - longitudeDelta)
+            .lte('lng', mapCenter.lng + longitudeDelta)
+
+          if (!error && data) {
+            remoteThreats = data
+          }
+        } catch (fetchErr) {
+          console.warn('No se pudo consultar Supabase en este momento:', fetchErr)
+        }
+      }
+
+      // Cargar reportes guardados en IndexedDB
+      let localThreats = []
+      try {
+        const locals = await getAllLocalReports()
+        const now = Date.now()
+        localThreats = locals
+          .filter((item) => now - new Date(item.created_at).getTime() <= TWO_HOURS_MS)
+          .filter((item) => !item.synced || !remoteThreats.some((rt) => rt.id === item.remote_id))
+          .map((item) => ({
+            id: item.localId,
+            title: item.title,
+            category: item.category,
+            lat: item.lat,
+            lng: item.lng,
+            status: 'sin_validar',
+            photo_url: null,
+            created_at: item.created_at,
+            synced: item.synced,
+          }))
+      } catch (idbErr) {
+        console.warn('Error leyendo reportes locales de IndexedDB:', idbErr)
+      }
+
+      const combined = [...remoteThreats, ...localThreats]
 
       setThreats(
-        (data || []).filter(
+        combined.filter(
           (threat) => distanceKm(mapCenter, { lat: threat.lat, lng: threat.lng }) <= THREAT_RADIUS_KM
         )
       )
@@ -99,7 +143,7 @@ export default function MapView() {
 
   useEffect(() => {
     loadThreats()
-  }, [loadThreats])
+  }, [loadThreats, syncVersion])
 
   // Click on the map opens the report page with lat/lng params
   function ClickHandler() {
@@ -116,7 +160,7 @@ export default function MapView() {
   return (
     <div className="dashboard-screen">
       {/* Header with logo */}
-      <header className="dashboard-header">
+      <header className="dashboard-header" style={{ display: 'flex', alignItems: 'center' }}>
         <div className="dashboard-logo-wrap">
           <img src="/logo.png" alt="Huellas Verdes" className="dashboard-logo-img" />
         </div>
@@ -128,6 +172,33 @@ export default function MapView() {
             {status === 'locating' ? 'Ubicando tu posición…' : 'Tu zona está activa'}
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/perfil')}
+          title="Tus Huellas acumuladas (toca para ver perfil)"
+          style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '7px',
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(10px)',
+            border: '1.5px solid rgba(58, 157, 94, 0.4)',
+            padding: '7px 14px',
+            borderRadius: '24px',
+            color: '#1a3d2b',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(30, 80, 50, 0.1)',
+            flexShrink: 0,
+          }}
+        >
+          <HuellaIcon size={18} variant="gradient" />
+          <span>{huellas.toLocaleString('es-CO')}</span>
+          <span style={{ fontSize: '11px', color: '#2e7d32', fontWeight: 600 }}>huellas</span>
+        </button>
       </header>
 
       {/* Stats row */}
@@ -232,6 +303,11 @@ export default function MapView() {
                 >
                   <Popup>
                     <strong>{t.title}</strong>
+                    {t.synced === false && (
+                      <div style={{ color: '#e67e22', fontWeight: 600, fontSize: '11px', marginTop: 4 }}>
+                        ⏳ Pendiente de sincronización
+                      </div>
+                    )}
                     <br />
                     {CATEGORY_LABELS[t.category] || t.category}
                   </Popup>
