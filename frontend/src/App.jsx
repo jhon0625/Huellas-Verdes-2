@@ -6,6 +6,10 @@ import Register from './pages/Register'
 import MapView from './pages/MapView'
 import Feed from './pages/Feed'
 import Volunteers from './pages/Volunteers'
+import VolunteerDetail from './pages/VolunteerDetail'
+import CreateVolunteer from './pages/CreateVolunteer'
+import ManageVolunteer from './pages/ManageVolunteer'
+import CheckInVolunteer from './pages/CheckInVolunteer'
 import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import NewReport from './pages/NewReport'
@@ -71,6 +75,10 @@ export default function App() {
             <Route path="/reportar" element={<PrivateArea><NewReport /></PrivateArea>} />
             <Route path="/feed" element={<PrivateArea><Feed /></PrivateArea>} />
             <Route path="/voluntariados" element={<PrivateArea><Volunteers /></PrivateArea>} />
+            <Route path="/voluntariados/crear" element={<PrivateArea><CreateVolunteer /></PrivateArea>} />
+            <Route path="/voluntariados/:id" element={<PrivateArea><VolunteerDetail /></PrivateArea>} />
+            <Route path="/voluntariados/:id/gestionar" element={<PrivateArea><ManageVolunteer /></PrivateArea>} />
+            <Route path="/voluntariados/:id/checkin" element={<PrivateArea><CheckInVolunteer /></PrivateArea>} />
             <Route path="/perfil" element={<PrivateArea><Profile /></PrivateArea>} />
 
             <Route path="*" element={<Navigate to="/mapa" replace />} />
