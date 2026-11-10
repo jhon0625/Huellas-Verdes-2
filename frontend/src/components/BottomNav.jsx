@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { MapPin, ListTree, UserRound, HandHeart, Menu, X } from 'lucide-react'
+import { MapPin, ListTree, UserRound, HandHeart, Menu, X, BookOpen } from 'lucide-react'
+import { ShoppingBag } from 'lucide-react'
 
 const items = [
   { to: '/mapa', label: 'Mapa', icon: MapPin },
   { to: '/feed', label: 'Reportes', icon: ListTree },
   { to: '/voluntariados', label: 'Voluntariados', icon: HandHeart },
+  { to: '/educacion', label: 'Educación', icon: BookOpen },
+  { to: '/tienda', label: 'Tienda', icon: ShoppingBag },
   { to: '/perfil', label: 'Perfil', icon: UserRound },
 ]
 

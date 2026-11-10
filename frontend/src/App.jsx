@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { NetworkProvider } from './context/NetworkContext'
 import BottomNav from './components/BottomNav'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -13,8 +14,9 @@ import CheckInVolunteer from './pages/CheckInVolunteer'
 import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import NewReport from './pages/NewReport'
+import Education from './pages/Education'
+import Store from './pages/Store'
 import { isSupabaseConfigured } from './supabaseClient'
-import { NetworkProvider } from './context/NetworkContext'
 
 function ConfigurationRequired() {
   return (
@@ -74,11 +76,17 @@ export default function App() {
             <Route path="/mapa" element={<PrivateArea><MapView /></PrivateArea>} />
             <Route path="/reportar" element={<PrivateArea><NewReport /></PrivateArea>} />
             <Route path="/feed" element={<PrivateArea><Feed /></PrivateArea>} />
+
+            {/* Rutas de Voluntariados */}
             <Route path="/voluntariados" element={<PrivateArea><Volunteers /></PrivateArea>} />
             <Route path="/voluntariados/crear" element={<PrivateArea><CreateVolunteer /></PrivateArea>} />
             <Route path="/voluntariados/:id" element={<PrivateArea><VolunteerDetail /></PrivateArea>} />
             <Route path="/voluntariados/:id/gestionar" element={<PrivateArea><ManageVolunteer /></PrivateArea>} />
             <Route path="/voluntariados/:id/checkin" element={<PrivateArea><CheckInVolunteer /></PrivateArea>} />
+
+            {/* Rutas de Educación, Tienda y Perfil */}
+            <Route path="/educacion" element={<PrivateArea><Education /></PrivateArea>} />
+            <Route path="/tienda" element={<PrivateArea><Store /></PrivateArea>} />
             <Route path="/perfil" element={<PrivateArea><Profile /></PrivateArea>} />
 
             <Route path="*" element={<Navigate to="/mapa" replace />} />
