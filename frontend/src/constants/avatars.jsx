@@ -401,6 +401,234 @@ export const CLOTHING_CATALOG = [
         <path d="M 44 107 L 42 120 L 47 118 Z" fill="#2A9D8F" />
       </g>
     )
+  },
+  {
+    id: 'leaf_brooch',
+    name: 'Broche Hoja Nativa',
+    category: 'accesorios',
+    price: 450,
+    icon: '🍃',
+    svgContent: (
+      <g>
+        <path d="M 119 111 C 119 99 130 94 140 96 C 139 107 132 115 119 111 Z" fill="#52B788" stroke="#1B4332" strokeWidth="2" />
+        <path d="M 119 112 L 135 99" stroke="#1B4332" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="119" cy="112" r="3" fill="#FFB703" />
+      </g>
+    )
+  },
+  {
+    id: 'seed_bracelet',
+    name: 'Pulsera de Semillas',
+    category: 'accesorios',
+    price: 900,
+    icon: '🫘',
+    svgContent: (
+      <g>
+        <path d="M 46 142 Q 52 146 58 143" stroke="#8D5524" strokeWidth="4" strokeLinecap="round" fill="none" />
+        <circle cx="48" cy="142" r="2.5" fill="#74C69D" />
+        <circle cx="53" cy="144" r="2.5" fill="#FFB703" />
+        <circle cx="57" cy="143" r="2.5" fill="#74C69D" />
+      </g>
+    )
+  },
+  {
+    id: 'water_drop_pendant',
+    name: 'Colgante Gota de Agua',
+    category: 'accesorios',
+    price: 1800,
+    icon: '💧',
+    svgContent: (
+      <g>
+        <path d="M 77 91 Q 100 109 123 91" stroke="#457B9D" strokeWidth="3" fill="none" />
+        <path d="M 100 99 C 96 105 93 109 93 113 A 7 7 0 0 0 107 113 C 107 109 104 105 100 99 Z" fill="#48CAE4" stroke="#0077B6" strokeWidth="1.5" />
+        <path d="M 97 112 Q 98 115 101 115" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      </g>
+    )
+  },
+  {
+    id: 'butterfly_companion',
+    name: 'Mariposa Compañera',
+    category: 'accesorios',
+    price: 4000,
+    icon: '🦋',
+    svgContent: (
+      <g>
+        <ellipse cx="151" cy="94" rx="6" ry="9" fill="#B583D6" transform="rotate(-25 151 94)" />
+        <ellipse cx="162" cy="94" rx="6" ry="9" fill="#F15BB5" transform="rotate(25 162 94)" />
+        <ellipse cx="152" cy="104" rx="4" ry="6" fill="#80FFDB" transform="rotate(25 152 104)" />
+        <ellipse cx="161" cy="104" rx="4" ry="6" fill="#72EFDD" transform="rotate(-25 161 104)" />
+        <path d="M 156 91 L 156 106" stroke="#3A0CA3" strokeWidth="2" strokeLinecap="round" />
+        <path d="M 156 91 Q 152 86 150 88 M 156 91 Q 160 86 162 88" stroke="#3A0CA3" strokeWidth="1" fill="none" />
+      </g>
+    )
+  },
+  {
+    id: 'hummingbird_companion',
+    name: 'Colibrí Guardián',
+    category: 'accesorios',
+    price: 9000,
+    icon: '🐦',
+    svgContent: (
+      <g>
+        <ellipse cx="48" cy="94" rx="10" ry="7" fill="#2A9D8F" transform="rotate(-18 48 94)" />
+        <path d="M 48 91 Q 43 79 51 77 Q 58 82 53 91 Z" fill="#74C69D" stroke="#1B4332" strokeWidth="1.5" />
+        <circle cx="56" cy="91" r="5" fill="#52B788" />
+        <path d="M 61 91 L 69 88 L 62 94 Z" fill="#FFB703" />
+        <circle cx="57" cy="90" r="1" fill="#1B2A20" />
+        <path d="M 46 99 L 43 104 M 51 100 L 50 105" stroke="#1B4332" strokeWidth="1.5" strokeLinecap="round" />
+      </g>
+    )
+  },
+  {
+    id: 'forest_amulet',
+    name: 'Amuleto Guardián del Bosque',
+    category: 'accesorios',
+    price: 15000,
+    icon: '🔮',
+    svgContent: (
+      <g>
+        <path d="M 75 91 Q 100 112 125 91" stroke="#B98A1D" strokeWidth="4" fill="none" />
+        <circle cx="100" cy="111" r="13" fill="#1F3D2B" stroke="#B98A1D" strokeWidth="3" />
+        <path d="M 100 100 L 108 111 L 100 122 L 92 111 Z" fill="#74C69D" stroke="#D8F3DC" strokeWidth="1.5" />
+        <circle cx="100" cy="111" r="3" fill="#F3E4BE" />
+      </g>
+    )
+  },
+  {
+    id: 'fern_earrings',
+    name: 'Aretes de Helecho',
+    category: 'accesorios',
+    price: 550,
+    icon: '🌿',
+    svgContent: (
+      <g>
+        <circle cx="64" cy="77" r="3" fill="none" stroke="#B98A1D" strokeWidth="2" />
+        <circle cx="136" cy="77" r="3" fill="none" stroke="#B98A1D" strokeWidth="2" />
+        <path d="M 64 80 Q 59 84 63 89 M 136 80 Q 141 84 137 89" stroke="#2D6A4F" strokeWidth="2" fill="none" />
+        <path d="M 63 88 Q 59 83 58 87 Q 60 91 63 88 M 137 88 Q 141 83 142 87 Q 140 91 137 88" fill="#74C69D" />
+      </g>
+    )
+  },
+  {
+    id: 'acorn_charm',
+    name: 'Dije de Bellota',
+    category: 'accesorios',
+    price: 1200,
+    icon: '🌰',
+    svgContent: (
+      <g>
+        <path d="M 78 91 Q 100 108 122 91" stroke="#8D5524" strokeWidth="3" fill="none" />
+        <path d="M 92 105 Q 100 100 108 105 L 106 111 Q 113 120 100 126 Q 87 120 94 111 Z" fill="#A98467" stroke="#6F4E37" strokeWidth="2" />
+        <path d="M 92 106 Q 100 99 108 106 L 107 111 Q 100 108 93 111 Z" fill="#6F4E37" />
+        <path d="M 98 102 Q 98 98 102 98" stroke="#6F4E37" strokeWidth="2" strokeLinecap="round" />
+      </g>
+    )
+  },
+  {
+    id: 'turtle_brooch',
+    name: 'Broche Tortuga de Río',
+    category: 'accesorios',
+    price: 2500,
+    icon: '🐢',
+    svgContent: (
+      <g>
+        <ellipse cx="78" cy="119" rx="12" ry="9" fill="#40916C" stroke="#1B4332" strokeWidth="2" />
+        <path d="M 69 117 Q 78 108 87 117 L 84 123 L 72 123 Z" fill="#74C69D" stroke="#1B4332" strokeWidth="1.5" />
+        <circle cx="91" cy="118" r="4" fill="#52B788" />
+        <circle cx="70" cy="127" r="2.5" fill="#1B4332" />
+        <circle cx="84" cy="127" r="2.5" fill="#1B4332" />
+        <circle cx="93" cy="117" r="1" fill="#FFFFFF" />
+      </g>
+    )
+  },
+  {
+    id: 'snail_companion',
+    name: 'Caracol de Jardín',
+    category: 'accesorios',
+    price: 4200,
+    icon: '🐌',
+    svgContent: (
+      <g>
+        <path d="M 143 111 Q 148 105 165 108 Q 169 111 166 116 L 145 116 Z" fill="#74C69D" stroke="#1B4332" strokeWidth="2" />
+        <circle cx="153" cy="105" r="8" fill="#E9C46A" stroke="#8D5524" strokeWidth="2" />
+        <path d="M 153 105 C 158 101 160 108 154 109 C 150 110 150 104 154 103" fill="none" stroke="#8D5524" strokeWidth="1.5" />
+        <path d="M 164 108 L 166 102 M 160 108 L 161 102" stroke="#1B4332" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="166" cy="101" r="1.2" fill="#1B4332" />
+        <circle cx="161" cy="101" r="1.2" fill="#1B4332" />
+      </g>
+    )
+  },
+  {
+    id: 'field_pouch',
+    name: 'Bolso de Exploración',
+    category: 'accesorios',
+    price: 6500,
+    icon: '👜',
+    svgContent: (
+      <g>
+        <path d="M 62 119 Q 55 124 55 139 L 76 139 L 76 121 Z" fill="#C77D3A" stroke="#6F4E37" strokeWidth="2" />
+        <path d="M 61 121 Q 62 112 69 112 Q 75 112 75 121" fill="none" stroke="#6F4E37" strokeWidth="3" />
+        <path d="M 57 128 L 74 128" stroke="#E9C46A" strokeWidth="2" />
+        <circle cx="68" cy="134" r="2" fill="#E9C46A" />
+      </g>
+    )
+  },
+  {
+    id: 'sunflower_medal',
+    name: 'Medalla Girasol Dorado',
+    category: 'accesorios',
+    price: 9000,
+    icon: '🌻',
+    svgContent: (
+      <g>
+        <path d="M 77 91 Q 100 109 123 91" stroke="#B98A1D" strokeWidth="3" fill="none" />
+        <g transform="translate(100 113)">
+          <ellipse cy="-9" rx="3.5" ry="6" fill="#FFB703" />
+          <ellipse cy="9" rx="3.5" ry="6" fill="#FFB703" />
+          <ellipse cx="-9" rx="6" ry="3.5" fill="#FFB703" />
+          <ellipse cx="9" rx="6" ry="3.5" fill="#FFB703" />
+          <ellipse cx="-6.5" cy="-6.5" rx="3.5" ry="6" transform="rotate(-45 -6.5 -6.5)" fill="#F4A261" />
+          <ellipse cx="6.5" cy="-6.5" rx="3.5" ry="6" transform="rotate(45 6.5 -6.5)" fill="#F4A261" />
+          <ellipse cx="-6.5" cy="6.5" rx="3.5" ry="6" transform="rotate(45 -6.5 6.5)" fill="#F4A261" />
+          <ellipse cx="6.5" cy="6.5" rx="3.5" ry="6" transform="rotate(-45 6.5 6.5)" fill="#F4A261" />
+          <circle r="5" fill="#6F4E37" />
+        </g>
+      </g>
+    )
+  },
+  {
+    id: 'owl_companion',
+    name: 'Búho Sabio',
+    category: 'accesorios',
+    price: 13000,
+    icon: '🦉',
+    svgContent: (
+      <g>
+        <ellipse cx="153" cy="100" rx="11" ry="13" fill="#8D6E63" stroke="#4E342E" strokeWidth="2" />
+        <path d="M 145 91 L 142 84 L 151 89 M 155 89 L 164 84 L 161 93" fill="#A1887F" stroke="#4E342E" strokeWidth="1.5" />
+        <circle cx="149" cy="98" r="4" fill="#F3E4BE" />
+        <circle cx="158" cy="98" r="4" fill="#F3E4BE" />
+        <circle cx="149" cy="98" r="1.5" fill="#1B2A20" />
+        <circle cx="158" cy="98" r="1.5" fill="#1B2A20" />
+        <path d="M 151 104 L 154 108 L 157 104 Z" fill="#FFB703" />
+        <path d="M 147 111 L 144 115 M 158 111 L 161 115" stroke="#FFB703" strokeWidth="2" />
+      </g>
+    )
+  },
+  {
+    id: 'crystal_tree_heart',
+    name: 'Corazón de Cristal del Bosque',
+    category: 'accesorios',
+    price: 18000,
+    icon: '💎',
+    svgContent: (
+      <g>
+        <path d="M 75 91 Q 100 110 125 91" stroke="#D4AF37" strokeWidth="4" fill="none" />
+        <path d="M 100 125 C 96 121 84 113 84 106 C 84 98 94 96 100 104 C 106 96 116 98 116 106 C 116 113 104 121 100 125 Z" fill="#52B788" stroke="#1B4332" strokeWidth="2" />
+        <path d="M 100 104 L 100 122 M 88 106 L 100 110 L 112 106" stroke="#D8F3DC" strokeWidth="1.5" fill="none" />
+        <circle cx="100" cy="105" r="3" fill="#F3E4BE" />
+      </g>
+    )
   }
 ]
 

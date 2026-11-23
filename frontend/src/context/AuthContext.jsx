@@ -25,6 +25,12 @@ export function AuthProvider({ children }) {
     return null
   }, [session?.user?.id])
 
+  const updateProfile = useCallback((updates) => {
+    setProfile((currentProfile) =>
+      currentProfile ? { ...currentProfile, ...updates } : currentProfile
+    )
+  }, [])
+
   useEffect(() => {
     if (!supabase) {
       setSession(null)
@@ -79,6 +85,7 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     refreshProfile,
+    updateProfile,
     loading: session === undefined,
     signOut: () => supabase?.auth?.signOut(),
   }

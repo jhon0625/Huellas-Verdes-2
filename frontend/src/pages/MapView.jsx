@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapPin, AlertTriangle, Leaf, ChevronRight } from 'lucide-react'
+import { MapPin, AlertTriangle, Leaf, ChevronRight, CircleHelp } from 'lucide-react'
 import { useGeolocation } from '../lib/useGeolocation'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
@@ -11,6 +12,7 @@ import { CATEGORY_LABELS } from '../components/ThreatCard'
 import { getAllLocalReports, REPORT_TTL_MS } from '../lib/offlineDb'
 import { useNetwork } from '../context/NetworkContext'
 import HuellaIcon from '../components/HuellaIcon'
+import CharacterDoll from '../components/CharacterDoll'
 
 const THREAT_RADIUS_KM = 25
 
@@ -38,15 +40,6 @@ const pawIcon = new L.Icon({
   popupAnchor: [0, -28],
 })
 
-// Blue dot icon for user location
-const USER_DOT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="%233a9d5e" stroke="white" stroke-width="3"/></svg>'
-const userDotUrl = 'data:image/svg+xml;base64,' + btoa(USER_DOT_SVG)
-const userIcon = new L.Icon({
-  iconUrl: userDotUrl,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-})
-
 function MapCenterController({ center }) {
   const map = useMap()
 
@@ -64,6 +57,19 @@ export default function MapView() {
   const { user, profile } = useAuth()
   const { syncVersion } = useNetwork()
   const huellas = profile?.huellas ?? 0
+  const avatarIcon = useMemo(() => {
+    const avatarMarkup = renderToStaticMarkup(
+      <CharacterDoll equipped={profile?.equipped} size={58} />
+    )
+
+    return L.divIcon({
+      className: 'user-map-marker-shell',
+      html: `<div class="user-map-marker"><span class="user-map-marker-tail"></span><div class="user-map-avatar">${avatarMarkup}</div></div>`,
+      iconSize: [58, 66],
+      iconAnchor: [29, 64],
+      popupAnchor: [0, -62],
+    })
+  }, [profile?.equipped])
   const [threats, setThreats] = useState([])
   const focusLat = Number(searchParams.get('lat'))
   const focusLng = Number(searchParams.get('lng'))
@@ -293,7 +299,7 @@ export default function MapView() {
                 dashArray: '6, 6',
               }}
             />
-            <Marker position={position} icon={userIcon} />
+            <Marker position={position} icon={avatarIcon} />
             {threats.map(function (t) {
               return (
                 <Marker
@@ -318,7 +324,12 @@ export default function MapView() {
           </MapContainer>
         </div>
         <div className="dashboard-map-meta">
-          <span><i className="map-key map-key-user" />Tu ubicación</span>
+          <span>
+            <i className="map-key-avatar" aria-hidden="true">
+              <CharacterDoll equipped={profile?.equipped} size={22} />
+            </i>
+            Tu ubicación
+          </span>
           <span><i className="map-key map-key-threat" />Amenaza reportada</span>
         </div>
       </div>
@@ -334,6 +345,16 @@ export default function MapView() {
       >
         <span>Crear reporte en mi ubicación</span>
         <ChevronRight size={18} />
+      </button>
+
+      <button
+        className="dashboard-help-btn"
+        type="button"
+        onClick={() => navigate('/ayuda')}
+      >
+        <CircleHelp size={19} />
+        <span>Ayuda</span>
+        <span className="dashboard-help-question" aria-hidden="true">?</span>
       </button>
     </div>
   )

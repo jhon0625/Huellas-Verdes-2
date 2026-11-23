@@ -9,7 +9,7 @@ import { CLOTHING_CATALOG, CLOTHING_CATEGORIES, DEFAULT_EQUIPPED } from '../cons
 import { supabase } from '../supabaseClient'
 
 export default function Profile() {
-  const { profile, user, signOut, refreshProfile } = useAuth()
+  const { profile, user, signOut, refreshProfile, updateProfile } = useAuth()
   const [stats, setStats] = useState(null)
   const [showWardrobe, setShowWardrobe] = useState(false)
   const [equippedState, setEquippedState] = useState(DEFAULT_EQUIPPED)
@@ -38,14 +38,16 @@ export default function Profile() {
     }
 
     setEquippedState(newEquipped)
+    updateProfile({ equipped: newEquipped })
 
     try {
       if (user) {
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({ equipped: newEquipped })
           .eq('id', user.id)
-        
+
+        if (error) throw error
         refreshProfile?.()
       }
     } catch (err) {
