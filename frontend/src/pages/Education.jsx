@@ -1256,6 +1256,30 @@ export default function Education() {
           </div>
         </div>
 
+        <aside
+          role="note"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            padding: '13px 14px',
+            backgroundColor: 'rgba(255, 255, 255, 0.72)',
+            border: '1px solid rgba(45, 106, 79, 0.18)',
+            borderRadius: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}
+        >
+          <Sparkles size={18} color="#2d6a4f" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <h2 style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#1b4332' }}>
+              Información en constante actualización
+            </h2>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', lineHeight: 1.45, color: '#2d6a4f' }}>
+              Estamos actualizando continuamente la información de las especies. Vuelve a consultar esta sección para conocer las novedades.
+            </p>
+          </div>
+        </aside>
+
         {/* Banner Informativo */}
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.85)',
@@ -1535,6 +1559,24 @@ export default function Education() {
               <p style={{ fontSize: '13px', color: '#333', lineHeight: '1.5', marginBottom: '16px' }}>
                 {selectedGuide.description}
               </p>
+
+              {selectedGuide.enrichment && (
+                <>
+                  <p style={{ fontSize: '13px', color: '#333', lineHeight: '1.5', marginTop: '-8px', marginBottom: '8px' }}>
+                    {selectedGuide.enrichment}
+                  </p>
+                  {selectedGuide.sourceUrl && (
+                    <a
+                      href={selectedGuide.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'inline-block', marginBottom: '16px', color: '#2d6a4f', fontSize: '11px', fontWeight: '600' }}
+                    >
+                      Fuente: {selectedGuide.sourceName || 'consulta de referencia'}
+                    </a>
+                  )}
+                </>
+              )}
 
               {/* 1. SECCIÓN DE ALERTAS Y LO QUE SE DEBE EVITAR (PRIMERO) */}
               {getAlerts(selectedGuide).length > 0 && (

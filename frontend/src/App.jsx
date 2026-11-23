@@ -16,6 +16,7 @@ import ResetPassword from './pages/ResetPassword'
 import NewReport from './pages/NewReport'
 import Education from './pages/Education'
 import Store from './pages/Store'
+import Help from './pages/Help'
 import { isSupabaseConfigured } from './supabaseClient'
 
 function ConfigurationRequired() {
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="/educacion" element={<PrivateArea><Education /></PrivateArea>} />
             <Route path="/tienda" element={<PrivateArea><Store /></PrivateArea>} />
             <Route path="/perfil" element={<PrivateArea><Profile /></PrivateArea>} />
+            <Route path="/ayuda" element={<PrivateArea><Help /></PrivateArea>} />
 
             <Route path="*" element={<Navigate to="/mapa" replace />} />
           </Routes>

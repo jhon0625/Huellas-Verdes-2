@@ -3,8 +3,10 @@ import { ShoppingBag, Check, Lock, Sparkles, RefreshCw, Shirt } from 'lucide-rea
 import { supabase } from '../supabaseClient'
 import CharacterDoll from '../components/CharacterDoll'
 import { CLOTHING_CATEGORIES, CLOTHING_CATALOG, DEFAULT_EQUIPPED } from '../constants/avatars'
+import { useAuth } from '../context/AuthContext'
 
 export default function Store() {
+  const { updateProfile } = useAuth()
   const [profile, setProfile] = useState({
     huellas: 0,
     inventory: [],
@@ -67,10 +69,12 @@ export default function Store() {
       }
 
       setProfile(prev => ({ ...prev, equipped: newEquipped }))
+      updateProfile({ equipped: newEquipped })
       showToast(isCurrentlyEquipped ? `Desequipaste ${item.name}` : `¡${item.name} equipada! ✨`, 'success')
     } catch (err) {
       console.error('Error al equipar:', err)
       setProfile(prev => ({ ...prev, equipped: newEquipped }))
+      updateProfile({ equipped: newEquipped })
       showToast('Cambio guardado localmente', 'success')
     } finally {
       setActionLoading(false)
@@ -112,6 +116,7 @@ export default function Store() {
         inventory: newInventory,
         equipped: newEquipped
       })
+      updateProfile({ huellas: newHuellas, inventory: newInventory, equipped: newEquipped })
       showToast(`¡Compraste y equipaste ${item.name}! 🎉`, 'success')
     } catch (err) {
       console.error('Error al comprar prenda:', err)
@@ -120,6 +125,7 @@ export default function Store() {
         inventory: newInventory,
         equipped: newEquipped
       })
+      updateProfile({ huellas: newHuellas, inventory: newInventory, equipped: newEquipped })
       showToast('Prenda desbloqueada localmente', 'success')
     } finally {
       setActionLoading(false)
@@ -131,10 +137,9 @@ export default function Store() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const filteredItems = CLOTHING_CATALOG.filter(item => {
-    if (activeCategory === 'todos') return true
-    return item.category === activeCategory
-  })
+  const filteredItems = CLOTHING_CATALOG
+    .filter(item => activeCategory === 'todos' || item.category === activeCategory)
+    .sort((a, b) => a.price - b.price)
 
   return (
     <div style={{
