@@ -1,10 +1,19 @@
+import asyncio
+import io
+import json
 import os
+from pathlib import Path
 from typing import Optional
 
+import torch
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from google import genai
+from google.genai import types
+from PIL import Image
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer, util
 
 from .geo import haversine_km
 from .supabase_client import get_supabase
@@ -18,16 +27,12 @@ app = FastAPI(
     description=(
         "API de apoyo para la app Huellas Verdes: calcula cercanía "
         "geográfica, arma el feed de amenazas con su nivel de confianza "
-        "comunitaria y sugiere convocatorias de voluntariado cercanas. "
-        "La autenticación y el CRUD básico viven directamente en Supabase; "
-        "este backend existe para la lógica que no es un simple query "
-        "(distancias, agregaciones, futuras notificaciones push)."
+        "comunitaria, sugiere convocatorias de voluntariado cercanas e "
+        "identifica especies mediante comparación visual local e híbrida."
     ),
     version="0.1.0",
 )
 
-# En desarrollo permitimos cualquier origen. En producción, restringe
-# esto al dominio real de tu frontend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,7 +43,11 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "huellas-verdes-api"}
+    return {
+        "status": "ok",
+        "service": "huellas-verdes-api",
+        "indexed_species": len(reference_embeddings),
+    }
 
 
 class Threat(BaseModel):
@@ -89,9 +98,7 @@ class DuplicateCheckRequest(BaseModel):
 @app.post("/threats/check-duplicates")
 def check_duplicates(payload: DuplicateCheckRequest):
     """Antes de crear un reporte, el frontend consulta este endpoint para
-    saber si ya existe una amenaza muy cercana (posible duplicado) y
-    para estimar a cuántos reportes previos se le podría sumar una
-    validación en lugar de crear uno nuevo."""
+    saber si ya existe una amenaza muy cercana (posible duplicado)."""
     supabase = get_supabase()
     res = supabase.table("threats").select("*").execute()
     rows = res.data or []
@@ -152,3 +159,292 @@ def stats_summary():
         "resolved_threats": resolved,
         "active_volunteer_calls": len(calls),
     }
+
+
+# ==================== MÓDULO EDUCATIVO (COMPARACIÓN VISUAL HÍBRIDA) ====================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+SPECIES_DIR = BASE_DIR / "especies"
+CATALOG_PATH = SPECIES_DIR / "catalogo.json"
+EMBEDDINGS_CACHE_PATH = SPECIES_DIR / "embeddings_cache.json"
+
+print("Inicializando motor visual CLIP...")
+clip_model = SentenceTransformer("clip-ViT-B-32")
+reference_embeddings: dict[str, torch.Tensor] = {}
+species_catalog: dict[str, dict] = {}
+
+
+def load_reference_species():
+    """Carga huellas precalculadas desde embeddings_cache.json o indexa fotos nuevas."""
+    global reference_embeddings, species_catalog
+
+    if CATALOG_PATH.exists():
+        try:
+            with open(CATALOG_PATH, "r", encoding="utf-8") as f:
+                species_catalog = json.load(f)
+        except Exception:
+            species_catalog = {}
+
+    cached_vectors: dict[str, list[float]] = {}
+    if EMBEDDINGS_CACHE_PATH.exists():
+        try:
+            with open(EMBEDDINGS_CACHE_PATH, "r", encoding="utf-8") as f:
+                cached_vectors = json.load(f)
+        except Exception:
+            cached_vectors = {}
+
+    cache_updated = False
+
+    if SPECIES_DIR.exists():
+        valid_exts = {".jpg", ".jpeg", ".png", ".webp"}
+        for img_path in sorted(SPECIES_DIR.iterdir()):
+            if img_path.suffix.lower() in valid_exts:
+                key = img_path.stem
+                if key in cached_vectors:
+                    reference_embeddings[key] = torch.tensor(cached_vectors[key])
+                else:
+                    try:
+                        img = Image.open(img_path).convert("RGB")
+                        emb = clip_model.encode(img, convert_to_tensor=True)
+                        reference_embeddings[key] = emb
+                        cached_vectors[key] = emb.cpu().tolist()
+                        cache_updated = True
+                    except Exception as e:
+                        print(f"No se pudo indexar {img_path.name}: {e}")
+
+    for key, vec in cached_vectors.items():
+        if key not in reference_embeddings:
+            reference_embeddings[key] = torch.tensor(vec)
+
+    if cache_updated:
+        save_embeddings_cache(cached_vectors)
+
+    print(f"Especies listas para comparación: {len(reference_embeddings)}")
+
+
+def save_catalog():
+    try:
+        SPECIES_DIR.mkdir(parents=True, exist_ok=True)
+        with open(CATALOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(species_catalog, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"No se pudo guardar catalogo.json: {e}")
+
+
+def save_embeddings_cache(cached_vectors: dict[str, list[float]]):
+    try:
+        SPECIES_DIR.mkdir(parents=True, exist_ok=True)
+        with open(EMBEDDINGS_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(cached_vectors, f)
+    except Exception as e:
+        print(f"No se pudo guardar embeddings_cache.json: {e}")
+
+
+load_reference_species()
+
+
+class SpeciesResponse(BaseModel):
+    es_ser_vivo: bool
+    mensaje_error: str
+    nombre_comun: str
+    nombre_cientifico: str
+    categoria: str
+    nivel_alerta: str
+    advertencia_seguridad: str
+    habitat: str
+    rol_ecologico: str
+    estado_conservacion: str
+    dato_curioso: str
+    consejo_proteccion: str
+
+
+async def get_or_generate_species_info(key: str) -> SpeciesResponse:
+    """Devuelve la ficha desde catalogo.json o la genera con Gemini y la guarda en caché."""
+    if key in species_catalog:
+        info = species_catalog[key]
+        # Si quedó guardada una ficha genérica vieja, la ignoramos para regenerarla con datos reales
+        if (
+            "advertencia_seguridad" in info
+            and not info.get("nombre_cientifico", "").startswith("Especie nativa (")
+        ):
+            return SpeciesResponse(
+                es_ser_vivo=True,
+                mensaje_error="",
+                nombre_comun=info["nombre_comun"],
+                nombre_cientifico=info["nombre_cientifico"],
+                categoria=info["categoria"],
+                nivel_alerta=info.get("nivel_alerta", "precaucion"),
+                advertencia_seguridad=info["advertencia_seguridad"],
+                habitat=info["habitat"],
+                rol_ecologico=info["rol_ecologico"],
+                estado_conservacion=info["estado_conservacion"],
+                dato_curioso=info["dato_curioso"],
+                consejo_proteccion=info["consejo_proteccion"],
+            )
+
+    readable_name = key.replace("-", " ").replace("_", " ").strip().capitalize()
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = (
+                f"Eres un biólogo experto de 'Huellas Verdes' en Colombia. "
+                f"Genera una ficha educativa precisa y específica en español para la especie '{readable_name}' "
+                f"presente en ecosistemas de Colombia. Marca 'es_ser_vivo' como True y 'mensaje_error' vacío. "
+                f"Incluye su nombre científico real, categoría taxonómica (Ave, Mamífero, Reptil, Planta, Insecto, etc.) "
+                f"y estado de conservación UICN real. "
+                f"Evalúa estrictamente su seguridad para humanos y mascotas: en 'nivel_alerta' usa únicamente "
+                f"'peligro' (si es venenosa, tóxica al tacto/ingestión o peligrosa), 'precaucion' "
+                f"(si puede morder/arañar si se manipula, transmite enfermedades o tiene espinas/irritantes) "
+                f"o 'ninguna' (si es completamente inofensiva). En 'advertencia_seguridad' escribe una recomendación "
+                f"específica sobre esta especie para el ciudadano."
+            )
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=SpeciesResponse,
+                        temperature=0.2,
+                    ),
+                ),
+                timeout=15.0,
+            )
+            parsed = SpeciesResponse.model_validate_json(response.text)
+            species_catalog[key] = parsed.model_dump(exclude={"es_ser_vivo", "mensaje_error"})
+            save_catalog()
+            return parsed
+        except Exception as e:
+            print(f"Error generando ficha con Gemini para {readable_name}: {e}")
+
+    # Respaldo temporal (NO se guarda en catalogo.json para reintentar luego con Gemini)
+    return SpeciesResponse(
+        es_ser_vivo=True,
+        mensaje_error="",
+        nombre_comun=readable_name,
+        nombre_cientifico=f"Especie nativa ({readable_name})",
+        categoria="Biodiversidad Local",
+        nivel_alerta="precaucion",
+        advertencia_seguridad="Observa a una distancia prudente, evita tocar o manipular el ejemplar y mantén alejadas a las mascotas.",
+        habitat="Ecosistemas naturales, bosques y zonas verdes de Colombia.",
+        rol_ecologico="Contribuye al equilibrio ecológico, la polinización, dispersión de semillas o control natural de su entorno.",
+        estado_conservacion="Especie registrada en catálogo local",
+        dato_curioso="Forma parte de la riqueza biológica monitoreada por la comunidad de Huellas Verdes.",
+        consejo_proteccion="Protege su hábitat natural, evita extraer ejemplares y reporta amenazas cercanas en el mapa.",
+    )
+
+
+@app.post("/api/identify-species", response_model=SpeciesResponse)
+async def identify_species(file: UploadFile = File(...)):
+    """1. Compara contra el catálogo local.
+    2. Si no coincide, usa Gemini Vision como respaldo para identificar seres vivos
+       fuera del catálogo y aprenderlos automáticamente en caché."""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo enviado debe ser una imagen válida.")
+
+    try:
+        image_bytes = await file.read()
+        user_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        user_emb = clip_model.encode(user_img, convert_to_tensor=True)
+
+        best_key = None
+        best_score = -1.0
+
+        for key, ref_emb in reference_embeddings.items():
+            score = float(util.cos_sim(user_emb, ref_emb)[0][0])
+            if score > best_score:
+                best_score = score
+                best_key = key
+
+        print(f"Coincidencia local: {best_key} (similitud: {best_score:.2f})")
+
+        # Nivel 1: Coincidencia clara en tu catálogo local
+        if best_score >= 0.68 and best_key:
+            return await get_or_generate_species_info(best_key)
+
+        # Nivel 2: No está en el catálogo -> Validar con Gemini Vision si es otro ser vivo
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            try:
+                client = genai.Client(api_key=api_key)
+                prompt = (
+                    "Eres el biólogo experto de la app 'Huellas Verdes'. Analiza esta imagen. "
+                    "Si NO es un ser vivo real (por ejemplo: un objeto, vehículo, edificio, pantalla, dibujo o paisaje sin foco), "
+                    "responde con 'es_ser_vivo': false, 'nivel_alerta': 'ninguna', 'advertencia_seguridad': '' "
+                    "y en 'mensaje_error' explica brevemente qué ves y pide enfocar una planta o animal. "
+                    "Si SÍ es un animal, planta, hongo o insecto real (silvestre o doméstico), responde con 'es_ser_vivo': true, "
+                    "'mensaje_error': '', evalúa en 'nivel_alerta' ('peligro', 'precaucion' o 'ninguna') si es venenosa, tóxica "
+                    "o requiere precaución, redacta 'advertencia_seguridad' como recomendación prioritaria para el usuario, "
+                    "y completa el resto de la ficha educativa en español."
+                )
+                response = await asyncio.wait_for(
+                    client.aio.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=[
+                            prompt,
+                            types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
+                        ],
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema=SpeciesResponse,
+                            temperature=0.2,
+                        ),
+                    ),
+                    timeout=15.0,
+                )
+                parsed = SpeciesResponse.model_validate_json(response.text)
+
+                if parsed.es_ser_vivo and parsed.nombre_comun:
+                    new_key = (
+                        parsed.nombre_comun.lower()
+                        .strip()
+                        .replace(" ", "-")
+                        .replace("á", "a")
+                        .replace("é", "e")
+                        .replace("í", "i")
+                        .replace("ó", "o")
+                        .replace("ú", "u")
+                        .replace("ñ", "n")
+                    )
+                    if new_key and new_key not in species_catalog:
+                        species_catalog[new_key] = parsed.model_dump(
+                            exclude={"es_ser_vivo", "mensaje_error"}
+                        )
+                        save_catalog()
+                        reference_embeddings[new_key] = user_emb
+                        cached = {}
+                        if EMBEDDINGS_CACHE_PATH.exists():
+                            try:
+                                with open(EMBEDDINGS_CACHE_PATH, "r", encoding="utf-8") as f:
+                                    cached = json.load(f)
+                            except Exception:
+                                cached = {}
+                        cached[new_key] = user_emb.cpu().tolist()
+                        save_embeddings_cache(cached)
+
+                return parsed
+            except Exception as e:
+                print(f"Respaldo Gemini no disponible: {e}")
+
+        return SpeciesResponse(
+            es_ser_vivo=False,
+            mensaje_error=(
+                "Esta especie aún no forma parte de nuestro inventario regional de Huellas Verdes. "
+                "Prueba con otra planta o animal de tu entorno."
+            ),
+            nombre_comun="",
+            nombre_cientifico="",
+            categoria="",
+            nivel_alerta="ninguna",
+            advertencia_seguridad="",
+            habitat="",
+            rol_ecologico="",
+            estado_conservacion="",
+            dato_curioso="",
+            consejo_proteccion="",
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al analizar la imagen: {str(e)}")
