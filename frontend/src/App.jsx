@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NetworkProvider } from './context/NetworkContext'
+import { HelpProvider } from './context/HelpContext'
 import BottomNav from './components/BottomNav'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -68,8 +69,9 @@ export default function App() {
   return (
     <AuthProvider>
       <NetworkProvider>
-        <div className="app-shell">
-          <Routes>
+        <HelpProvider>
+          <div className="app-shell">
+            <Routes>
             <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
             <Route path="/registro" element={<PublicOnly><Register /></PublicOnly>} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -94,6 +96,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/mapa" replace />} />
           </Routes>
         </div>
+        </HelpProvider>
       </NetworkProvider>
     </AuthProvider>
   )

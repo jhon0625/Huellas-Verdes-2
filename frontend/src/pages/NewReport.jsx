@@ -7,6 +7,7 @@ import { useNetwork } from '../context/NetworkContext'
 import { savePendingReport } from '../lib/offlineDb'
 import { syncAllPending } from '../lib/syncEngine'
 import { CATEGORY_LABELS } from '../components/ThreatCard'
+import { useLongPressHelp } from '../context/HelpContext'
 
 const PHOTO_BUCKET = 'threat-photos'
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024
@@ -141,6 +142,12 @@ export default function NewReport() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { refreshPendingCount } = useNetwork()
+
+  const reportBackHelpProps = useLongPressHelp('report_back', { onClick: () => navigate('/mapa') })
+  const reportSubmitHelpProps = useLongPressHelp('report_submit')
+  const reportCategoryHelpProps = useLongPressHelp('report_category')
+  const reportPhotoHelpProps = useLongPressHelp('report_photo')
+  const reportVideoHelpProps = useLongPressHelp('report_video')
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -356,7 +363,8 @@ export default function NewReport() {
       style={{ padding: '20px', alignItems: 'flex-start', overflowY: 'auto' }}
     >
       <button
-        onClick={() => navigate('/mapa')}
+        {...reportBackHelpProps}
+        title="Volver al mapa (mantén presionado para ver ayuda)"
         style={{
           position: 'absolute',
           top: 20,
@@ -409,6 +417,8 @@ export default function NewReport() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 style={selectStyle}
+                {...reportCategoryHelpProps}
+                title="Categoría de amenaza (mantén presionado para ver ayuda)"
               >
                 {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -671,7 +681,7 @@ export default function NewReport() {
             </div>
           </div>
 
-          <button className="login-btn" type="submit" disabled={submitting}>
+          <button className="login-btn" type="submit" disabled={submitting} {...reportSubmitHelpProps} title="Publicar reporte (mantén presionado para ver ayuda)">
             {submitting ? 'Enviando...' : 'Publicar reporte'}
           </button>
         </form>

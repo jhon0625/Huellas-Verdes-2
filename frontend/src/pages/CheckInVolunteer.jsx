@@ -5,6 +5,7 @@ import jsQR from 'jsqr'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import HuellaIcon from '../components/HuellaIcon'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function CheckInVolunteer() {
   const { id } = useParams()
@@ -22,6 +23,11 @@ export default function CheckInVolunteer() {
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
   const rafRef = useRef(null)
+  const backHelpProps = useLongPressHelp('vol_back', { onClick: () => { stopCamera(); navigate(`/voluntariados/${id}`) } })
+  const retryHelpProps = useLongPressHelp('checkin_retry', { onClick: () => { setResult(null); setManualCode('') } })
+  const qrTabHelpProps = useLongPressHelp('checkin_qr_tab', { onClick: () => { stopCamera(); setMode('qr') } })
+  const manualTabHelpProps = useLongPressHelp('checkin_manual_tab', { onClick: () => { stopCamera(); setMode('manual') } })
+  const manualSubmitHelpProps = useLongPressHelp('checkin_submit')
 
   const stopCamera = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -54,6 +60,8 @@ export default function CheckInVolunteer() {
       setCameraError('No se pudo acceder a la cámara: ' + err.message)
     }
   }
+
+  const cameraHelpProps = useLongPressHelp('checkin_camera', { onClick: startCamera })
 
   const scanFrame = () => {
     const video = videoRef.current
@@ -116,7 +124,8 @@ export default function CheckInVolunteer() {
         style={{ display: 'flex', alignItems: 'center', gap: 10 }}
       >
         <button
-          onClick={() => { stopCamera(); navigate(`/voluntariados/${id}`) }}
+          {...backHelpProps}
+          title="Volver al voluntariado (mantén presionado para ver ayuda)"
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#1a3d2b' }}
         >
           <ArrowLeft size={22} />
@@ -171,7 +180,8 @@ export default function CheckInVolunteer() {
                 </h3>
                 <p style={{ color: '#555', fontSize: 13 }}>{result.error}</p>
                 <button
-                  onClick={() => { setResult(null); setManualCode('') }}
+                  {...retryHelpProps}
+                  title="Intentar de nuevo (mantén presionado para ver ayuda)"
                   style={{
                     marginTop: 10,
                     padding: '9px 20px',
@@ -208,7 +218,8 @@ export default function CheckInVolunteer() {
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => { stopCamera(); setMode(tab.key) }}
+                  {...(tab.key === 'qr' ? qrTabHelpProps : manualTabHelpProps)}
+                  title={`${tab.label} (mantén presionado para ver ayuda)`}
                   style={{
                     flex: 1,
                     display: 'flex',
@@ -310,7 +321,8 @@ export default function CheckInVolunteer() {
 
                 {!scanning ? (
                   <button
-                    onClick={startCamera}
+                    {...cameraHelpProps}
+                    title="Activar cámara (mantén presionado para ver ayuda)"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -379,6 +391,8 @@ export default function CheckInVolunteer() {
                   type="submit"
                   className="btn-primary"
                   disabled={manualCode.length !== 6}
+                  {...manualSubmitHelpProps}
+                  title="Confirmar asistencia (mantén presionado para ver ayuda)"
                 >
                   Confirmar asistencia
                 </button>

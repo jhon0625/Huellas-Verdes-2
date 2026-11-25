@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Leaf, User, Mail, Lock, Users, ArrowRight, CheckCircle, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Register() {
   const [fullName, setFullName] = useState('')
@@ -14,6 +15,10 @@ export default function Register() {
   const [resent, setResent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+
+  const submitHelpProps = useLongPressHelp('register_submit')
+  const toLoginHelpProps = useLongPressHelp('register_to_login')
+  const resendHelpProps = useLongPressHelp('register_resend', { onClick: resendConfirmation })
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -87,8 +92,9 @@ export default function Register() {
             <button 
               className="login-forgot" 
               type="button" 
-              onClick={resendConfirmation}
+              {...resendHelpProps}
               style={{ padding: '12px' }}
+              title="Reenviar correo (mantén presionado para ver ayuda)"
             >
               <RotateCcw size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Reenviar correo de confirmación
@@ -203,14 +209,14 @@ export default function Register() {
             </div>
           </div>
 
-          <button className="login-btn" type="submit" disabled={loading}>
+          <button className="login-btn" type="submit" disabled={loading} {...submitHelpProps} title="Crear cuenta (mantén presionado para ver ayuda)">
             {loading ? 'Creando...' : 'Crear cuenta'}
             {!loading && <ArrowRight size={18} />}
           </button>
         </form>
 
         <p className="login-footer">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+          ¿Ya tienes cuenta? <Link to="/login" {...toLoginHelpProps} title="Iniciar sesión (mantén presionado para ver ayuda)">Inicia sesión</Link>
         </p>
       </div>
     </div>

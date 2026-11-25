@@ -4,7 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapPin, AlertTriangle, Leaf, ChevronRight, CircleHelp } from 'lucide-react'
+import { MapPin, AlertTriangle, Leaf, ChevronRight } from 'lucide-react'
 import { useGeolocation } from '../lib/useGeolocation'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
@@ -13,6 +13,7 @@ import { getAllLocalReports, REPORT_TTL_MS } from '../lib/offlineDb'
 import { useNetwork } from '../context/NetworkContext'
 import HuellaIcon from '../components/HuellaIcon'
 import CharacterDoll from '../components/CharacterDoll'
+import { useLongPressHelp } from '../context/HelpContext'
 
 const THREAT_RADIUS_KM = 25
 
@@ -79,6 +80,14 @@ export default function MapView() {
     Number.isFinite(focusLat) &&
     Number.isFinite(focusLng)
   const mapCenter = hasFocus ? { lat: focusLat, lng: focusLng } : position
+
+  const crearReporteHelpProps = useLongPressHelp('btn_crear_reporte', {
+    onClick: () => navigate('/reportar?lat=' + position.lat + '&lng=' + position.lng),
+  })
+
+  const huellasHelpProps = useLongPressHelp('btn_huellas', {
+    onClick: () => navigate('/perfil'),
+  })
 
   const loadThreats = useCallback(async () => {
     try {
@@ -181,8 +190,8 @@ export default function MapView() {
 
         <button
           type="button"
-          onClick={() => navigate('/perfil')}
-          title="Tus Huellas acumuladas (toca para ver perfil)"
+          {...huellasHelpProps}
+          title="Tus Huellas acumuladas (mantén presionado para ver ayuda)"
           style={{
             marginLeft: 'auto',
             display: 'flex',
@@ -339,23 +348,13 @@ export default function MapView() {
       {/* Quick action button */}
       <button
         className="dashboard-action-btn"
-        onClick={function () {
-          navigate('/reportar?lat=' + position.lat + '&lng=' + position.lng)
-        }}
+        {...crearReporteHelpProps}
+        title="Crear reporte (mantén presionado para ver ayuda)"
       >
         <span>Crear reporte en mi ubicación</span>
         <ChevronRight size={18} />
       </button>
 
-      <button
-        className="dashboard-help-btn"
-        type="button"
-        onClick={() => navigate('/ayuda')}
-      >
-        <CircleHelp size={19} />
-        <span>Ayuda</span>
-        <span className="dashboard-help-question" aria-hidden="true">?</span>
-      </button>
     </div>
   )
 }

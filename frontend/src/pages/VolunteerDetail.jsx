@@ -12,6 +12,7 @@ import {
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import HuellaIcon from '../components/HuellaIcon'
+import { useLongPressHelp } from '../context/HelpContext'
 
 const STATUS_LABEL = {
   open: 'Abierto',
@@ -33,6 +34,8 @@ export default function VolunteerDetail() {
   const [msg, setMsg] = useState(null) // { type: 'ok'|'err', text }
 
   const isMyEvent = event?.ong_id === user?.id
+
+  const backHelpProps = useLongPressHelp('vol_back', { onClick: () => navigate('/voluntariados') })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -113,6 +116,11 @@ export default function VolunteerDetail() {
     }
   }
 
+  const joinHelpProps = useLongPressHelp('vol_join', { onClick: handleJoin })
+  const checkinHelpProps = useLongPressHelp('vol_checkin', { onClick: () => navigate(`/voluntariados/${id}/checkin`) })
+  const leaveHelpProps = useLongPressHelp('vol_leave', { onClick: handleLeave })
+  const manageHelpProps = useLongPressHelp('vol_manage', { onClick: () => navigate(`/voluntariados/${id}/gestionar`) })
+
   if (loading) return <div className="loading-row">Cargando evento...</div>
   if (!event) return <div className="loading-row">Evento no encontrado.</div>
 
@@ -135,7 +143,8 @@ export default function VolunteerDetail() {
         style={{ display: 'flex', alignItems: 'center', gap: 10 }}
       >
         <button
-          onClick={() => navigate('/voluntariados')}
+          {...backHelpProps}
+          title="Volver a voluntariados (mantén presionado para ver ayuda)"
           style={{
             background: 'none',
             border: 'none',
@@ -266,7 +275,7 @@ export default function VolunteerDetail() {
         {!isMyEvent && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {canJoin && (
-              <button className="btn-primary" onClick={handleJoin} disabled={joining}>
+              <button className="btn-primary" disabled={joining} {...joinHelpProps} title="Inscribirme (mantén presionado para ver ayuda)">
                 {joining ? 'Inscribiendo...' : '✋ Inscribirme'}
               </button>
             )}
@@ -274,7 +283,8 @@ export default function VolunteerDetail() {
             {myReg && !myReg.attended && (
               <>
                 <button
-                  onClick={() => navigate(`/voluntariados/${id}/checkin`)}
+                  {...checkinHelpProps}
+                  title="Registrar asistencia (mantén presionado para ver ayuda)"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -294,8 +304,9 @@ export default function VolunteerDetail() {
                   Registrar asistencia (QR / código)
                 </button>
                 <button
-                  onClick={handleLeave}
                   disabled={joining}
+                  {...leaveHelpProps}
+                  title="Cancelar inscripción (mantén presionado para ver ayuda)"
                   style={{
                     padding: '11px',
                     background: 'none',
@@ -317,7 +328,8 @@ export default function VolunteerDetail() {
         {/* Acciones del organizador ONG */}
         {isMyEvent && (
           <button
-            onClick={() => navigate(`/voluntariados/${id}/gestionar`)}
+            {...manageHelpProps}
+            title="Gestionar actividad (mantén presionado para ver ayuda)"
             style={{
               display: 'flex',
               alignItems: 'center',

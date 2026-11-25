@@ -1,5 +1,6 @@
 import { Calendar, MapPin, Users } from 'lucide-react'
 import HuellaIcon from './HuellaIcon'
+import { useLongPressHelp } from '../context/HelpContext'
 
 const STATUS_LABEL = {
   open: { label: 'Abierto', color: '#2e7d32' },
@@ -9,6 +10,7 @@ const STATUS_LABEL = {
 }
 
 export default function VolunteerCard({ event, registrationCount = 0, onClick }) {
+  const cardHelpProps = useLongPressHelp('vol_card', { onClick })
   const st = STATUS_LABEL[event.status] ?? STATUS_LABEL.open
   const dateStr = new Date(event.event_date).toLocaleDateString('es-CO', {
     weekday: 'short',
@@ -20,7 +22,8 @@ export default function VolunteerCard({ event, registrationCount = 0, onClick })
   return (
     <article
       className="threat-card volunteer-card"
-      onClick={onClick}
+      {...cardHelpProps}
+      title="Abrir voluntariado (mantén presionado para ver ayuda)"
       style={{ cursor: 'pointer' }}
     >
       {/* Estado + recompensa */}

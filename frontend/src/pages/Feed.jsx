@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { getAllLocalReports, REPORT_TTL_MS } from '../lib/offlineDb'
 import { useNetwork } from '../context/NetworkContext'
+import { useLongPressHelp } from '../context/HelpContext'
 
 const REPORT_RADIUS_KM = 50
 
@@ -34,6 +35,13 @@ export default function Feed() {
   const [votingId, setVotingId] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const navigate = useNavigate()
+
+  const nuevoReporteHelpProps = useLongPressHelp('btn_nuevo_reporte_feed', {
+    onClick: () => navigate(`/reportar?lat=${position.lat}&lng=${position.lng}`),
+  })
+  const syncHelpProps = useLongPressHelp('feed_sync', {
+    onClick: () => triggerSync(),
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -223,7 +231,8 @@ export default function Feed() {
             type="button"
             className="btn"
             disabled={isSyncing || !isOnline}
-            onClick={() => triggerSync()}
+            {...syncHelpProps}
+            title="Sincronizar reportes (mantén presionado para ver ayuda)"
             style={{
               padding: '6px 14px',
               fontSize: '12px',
@@ -244,9 +253,8 @@ export default function Feed() {
       <button
         className="btn btn-primary page-primary-action"
         type="button"
-        onClick={() => {
-          navigate(`/reportar?lat=${position.lat}&lng=${position.lng}`)
-        }}
+        {...nuevoReporteHelpProps}
+        title="Nuevo reporte (mantén presionado para ver ayuda)"
       >
         <Plus size={18} />
         Nuevo reporte

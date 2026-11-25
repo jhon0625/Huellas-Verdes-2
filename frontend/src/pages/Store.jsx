@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import CharacterDoll from '../components/CharacterDoll'
 import { CLOTHING_CATEGORIES, CLOTHING_CATALOG, DEFAULT_EQUIPPED } from '../constants/avatars'
 import { useAuth } from '../context/AuthContext'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Store() {
   const { updateProfile } = useAuth()
@@ -16,6 +17,7 @@ export default function Store() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const refreshHelpProps = useLongPressHelp('store_refresh', { onClick: () => fetchProfile() })
 
   useEffect(() => {
     fetchProfile()
@@ -188,7 +190,7 @@ export default function Store() {
           </div>
 
           <button
-            onClick={fetchProfile}
+            {...refreshHelpProps}
             style={{
               background: 'none',
               border: 'none',
@@ -196,7 +198,7 @@ export default function Store() {
               color: '#1b4332',
               padding: '6px'
             }}
-            title="Recargar saldo"
+            title="Recargar saldo (mantén presionado para ver ayuda)"
           >
             <RefreshCw size={18} className={loading ? 'spin' : ''} />
           </button>

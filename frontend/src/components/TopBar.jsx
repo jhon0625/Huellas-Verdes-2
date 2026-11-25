@@ -2,11 +2,16 @@ import { Sprout } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import HuellaIcon from './HuellaIcon'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function TopBar({ title, subtitle }) {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const huellas = profile?.huellas ?? 0
+
+  const huellasHelpProps = useLongPressHelp('btn_huellas', {
+    onClick: () => navigate('/perfil'),
+  })
 
   return (
     <header
@@ -29,9 +34,9 @@ export default function TopBar({ title, subtitle }) {
 
       <button
         type="button"
-        onClick={() => navigate('/perfil')}
+        {...huellasHelpProps}
         className="huellas-badge-pill"
-        title="Tus Huellas acumuladas (toca para ver detalles)"
+        title="Tus Huellas acumuladas (mantén presionado para ver ayuda)"
         style={{
           display: 'flex',
           alignItems: 'center',

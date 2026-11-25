@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLongPressHelp } from '../context/HelpContext'
 import {
   ArrowLeft,
   BookOpen,
@@ -84,6 +85,7 @@ const guideSections = [
 export default function Help() {
   const navigate = useNavigate()
   const [openSection, setOpenSection] = useState('mapa')
+  const backHelpProps = useLongPressHelp('help_back', { onClick: () => navigate('/mapa') })
 
   return (
     <main className="help-screen">
@@ -91,7 +93,7 @@ export default function Help() {
         <button
           className="help-back-btn"
           type="button"
-          onClick={() => navigate('/mapa')}
+          {...backHelpProps}
           aria-label="Volver al mapa"
         >
           <ArrowLeft size={20} />

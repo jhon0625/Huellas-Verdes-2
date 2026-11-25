@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Lock, ArrowRight, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -12,6 +13,7 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const navigate = useNavigate()
+  const resetSubmitHelpProps = useLongPressHelp('reset_submit')
 
   useEffect(() => {
     // Escuchar cambios de sesión. Cuando el usuario hace clic en el link del correo, 
@@ -145,7 +147,7 @@ export default function ResetPassword() {
             </button>
           </div>
 
-          <button className="login-btn" type="submit" disabled={loading}>
+          <button className="login-btn" type="submit" disabled={loading} {...resetSubmitHelpProps} title="Guardar contraseña (mantén presionado para ver ayuda)">
             {loading ? 'Guardando...' : 'Guardar contraseña'}
             {!loading && <ArrowRight size={18} />}
           </button>

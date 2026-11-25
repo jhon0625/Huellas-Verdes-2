@@ -4,6 +4,7 @@ import { ArrowLeft, QrCode, Users, ToggleLeft, ToggleRight, Copy, Check } from '
 import QRCode from 'qrcode'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function ManageVolunteer() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ export default function ManageVolunteer() {
   const [toggling, setToggling] = useState(false)
   const [copied, setCopied] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
+  const backHelpProps = useLongPressHelp('vol_back', { onClick: () => navigate(`/voluntariados/${id}`) })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -87,6 +89,9 @@ export default function ManageVolunteer() {
     })
   }
 
+  const copyHelpProps = useLongPressHelp('vol_copy_code', { onClick: copyCode })
+  const toggleHelpProps = useLongPressHelp('vol_toggle_code', { onClick: toggleCode })
+
   if (loading) return <div className="loading-row">Cargando panel de gestión...</div>
   if (!event) return <div className="loading-row">Evento no encontrado.</div>
 
@@ -101,7 +106,8 @@ export default function ManageVolunteer() {
         style={{ display: 'flex', alignItems: 'center', gap: 10 }}
       >
         <button
-          onClick={() => navigate(`/voluntariados/${id}`)}
+          {...backHelpProps}
+          title="Volver al voluntariado (mantén presionado para ver ayuda)"
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#1a3d2b' }}
         >
           <ArrowLeft size={22} />
@@ -178,8 +184,8 @@ export default function ManageVolunteer() {
               {event.checkin_code}
             </span>
             <button
-              onClick={copyCode}
-              title="Copiar código"
+              {...copyHelpProps}
+              title="Copiar código (mantén presionado para ver ayuda)"
               style={{
                 background: 'none',
                 border: 'none',
@@ -200,7 +206,8 @@ export default function ManageVolunteer() {
 
           {/* Toggle */}
           <button
-            onClick={toggleCode}
+            {...toggleHelpProps}
+            title="Activar o desactivar código (mantén presionado para ver ayuda)"
             disabled={toggling}
             style={{
               display: 'flex',

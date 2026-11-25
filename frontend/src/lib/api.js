@@ -1,4 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `http://${window.location.hostname}:8000`
+  }
+  return envUrl || 'http://localhost:8000'
+}
+
+const API_URL = getApiUrl()
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {

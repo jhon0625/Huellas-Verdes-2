@@ -2014,3 +2014,152 @@ a {
   background: rgba(255, 255, 255, 0.34);
 }
 
+/* ==========================================================================
+   MODAL DE AYUDA POR PULSACIÓN LARGA (LONG PRESS)
+   ========================================================================== */
+.help-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 35, 22, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 99999;
+  animation: helpFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.help-modal-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 380px;
+  padding: 24px 20px 20px;
+  box-shadow: 0 16px 40px rgba(10, 40, 20, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: helpZoomIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+.help-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f2;
+  color: #4a6b57;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-modal-close:hover {
+  background: #e2ede5;
+  color: #1b4332;
+}
+
+.help-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 32px;
+}
+
+.help-modal-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.12);
+}
+
+.help-modal-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.help-modal-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2e7d32;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.help-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1b4332;
+  line-height: 1.25;
+}
+
+.help-modal-body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #385744;
+  white-space: pre-line;
+}
+
+.help-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.help-modal-ok-btn {
+  background: linear-gradient(135deg, #2e7d32, #1b4332);
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.help-modal-ok-btn:active {
+  transform: scale(0.98);
+}
+
+@keyframes helpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes helpZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+

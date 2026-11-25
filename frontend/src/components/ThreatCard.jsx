@@ -1,5 +1,6 @@
 import { ThumbsUp, ThumbsDown, MapPin } from 'lucide-react'
 import HuellaIcon from './HuellaIcon'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export const CATEGORY_LABELS = {
   incendios_forestales: 'Incendios forestales',
@@ -33,6 +34,13 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
     : null
 
   const photoSrc = threat.photo_url || threat.local_photo_url
+
+  const confirmHelpProps = useLongPressHelp('threat_confirm', {
+    onClick: () => onVote && onVote(threat.id, true),
+  })
+  const dismissHelpProps = useLongPressHelp('threat_dismiss', {
+    onClick: () => onVote && onVote(threat.id, false),
+  })
 
   return (
     <article className="threat-card">
@@ -137,7 +145,8 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
             <button
               className="btn-confirm"
               disabled={voting || hasVoted}
-              onClick={() => onVote(threat.id, true)}
+              {...confirmHelpProps}
+              title="Confirmar reporte (mantén presionado para ver ayuda)"
             >
               <ThumbsUp size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
               Sí, estoy viendo ({confirmations})
@@ -145,7 +154,8 @@ export default function ThreatCard({ threat, onVote, voting, hasVoted }) {
             <button
               className="btn-dismiss"
               disabled={voting || hasVoted}
-              onClick={() => onVote(threat.id, false)}
+              {...dismissHelpProps}
+              title="Descartar reporte (mantén presionado para ver ayuda)"
             >
               <ThumbsDown size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
               No lo estoy viendo ({dismissals})

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Sprout, Mail, Lock, ArrowRight, X, KeyRound, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -10,6 +11,11 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
+
+  const submitHelpProps = useLongPressHelp('login_submit')
+  const forgotHelpProps = useLongPressHelp('login_forgot', { onClick: openRecovery })
+  const toRegisterHelpProps = useLongPressHelp('login_to_register')
+  const recoverySubmitHelpProps = useLongPressHelp('login_recovery_submit')
 
   // Recovery modal state
   const [showRecovery, setShowRecovery] = useState(false)
@@ -116,7 +122,7 @@ export default function Login() {
             </button>
           </div>
 
-          <button className="login-btn" type="submit" disabled={loading}>
+          <button className="login-btn" type="submit" disabled={loading} {...submitHelpProps} title="Ingresar (mantén presionado para ver ayuda)">
             {loading ? 'Ingresando...' : 'Ingresar'}
             {!loading && <ArrowRight size={18} />}
           </button>
@@ -131,7 +137,8 @@ export default function Login() {
         <button
           className="login-forgot"
           type="button"
-          onClick={openRecovery}
+          {...forgotHelpProps}
+          title="Recuperar contraseña (mantén presionado para ver ayuda)"
         >
           <KeyRound size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
           ¿Olvidaste tu contraseña?
@@ -139,7 +146,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="login-footer">
-          ¿No tienes cuenta? <Link to="/registro">Crear cuenta</Link>
+          ¿No tienes cuenta? <Link to="/registro" {...toRegisterHelpProps} title="Crear cuenta (mantén presionado para ver ayuda)">Crear cuenta</Link>
         </p>
       </div>
 
@@ -186,6 +193,8 @@ export default function Login() {
                     className="login-btn"
                     type="submit"
                     disabled={recoveryLoading}
+                    {...recoverySubmitHelpProps}
+                    title="Enviar enlace (mantén presionado para ver ayuda)"
                   >
                     {recoveryLoading ? 'Enviando...' : 'Enviar enlace'}
                     {!recoveryLoading && <ArrowRight size={18} />}

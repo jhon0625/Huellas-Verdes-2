@@ -5,10 +5,14 @@ import TopBar from '../components/TopBar'
 import VolunteerCard from '../components/VolunteerCard'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Volunteers() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const createVolHelpProps = useLongPressHelp('vol_create', {
+    onClick: () => navigate('/voluntariados/crear'),
+  })
   const [events, setEvents] = useState([])
   const [counts, setCounts] = useState({})  // { [event_id]: number }
   const [loading, setLoading] = useState(true)
@@ -65,7 +69,8 @@ export default function Volunteers() {
 
       {/* Botón para crear evento — disponible para todos */}
       <button
-        onClick={() => navigate('/voluntariados/crear')}
+        {...createVolHelpProps}
+        title="Crear convocatoria (mantén presionado para ver ayuda)"
         style={{
           display: 'flex',
           alignItems: 'center',

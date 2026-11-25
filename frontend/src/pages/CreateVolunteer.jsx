@@ -16,6 +16,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useLongPressHelp } from '../context/HelpContext'
 import { useGeolocation } from '../lib/useGeolocation'
 import HuellaIcon from '../components/HuellaIcon'
 
@@ -123,6 +124,9 @@ export default function CreateVolunteer() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const submitHelpProps = useLongPressHelp('create_vol_submit')
+  const backHelpProps = useLongPressHelp('create_vol_back', { onClick: () => navigate('/voluntariados') })
+
   const setField = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
 
@@ -148,6 +152,8 @@ export default function CreateVolunteer() {
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
+
+  const gpsHelpProps = useLongPressHelp('create_vol_gps', { onClick: handleGetCurrentGps })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -210,7 +216,8 @@ export default function CreateVolunteer() {
       >
         <button
           type="button"
-          onClick={() => navigate('/voluntariados')}
+          {...backHelpProps}
+          title="Volver a voluntariados (mantén presionado para ver ayuda)"
           aria-label="Volver a voluntariados"
           style={{
             background: 'rgba(255, 255, 255, 0.75)',
@@ -384,8 +391,9 @@ export default function CreateVolunteer() {
 
               <button
                 type="button"
-                onClick={handleGetCurrentGps}
+                {...gpsHelpProps}
                 disabled={gpsLocating}
+                title="Usar GPS actual (mantén presionado para ver ayuda)"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -488,6 +496,8 @@ export default function CreateVolunteer() {
           <button
             type="submit"
             disabled={loading}
+            {...submitHelpProps}
+            title="Publicar convocatoria (mantén presionado para ver ayuda)"
             style={{
               display: 'flex',
               alignItems: 'center',

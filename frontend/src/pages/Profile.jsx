@@ -7,6 +7,7 @@ import HuellaIcon from '../components/HuellaIcon'
 import CharacterDoll from '../components/CharacterDoll'
 import { CLOTHING_CATALOG, CLOTHING_CATEGORIES, DEFAULT_EQUIPPED } from '../constants/avatars'
 import { supabase } from '../supabaseClient'
+import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Profile() {
   const { profile, user, signOut, refreshProfile, updateProfile } = useAuth()
@@ -15,6 +16,11 @@ export default function Profile() {
   const [equippedState, setEquippedState] = useState(DEFAULT_EQUIPPED)
   const [inventoryState, setInventoryState] = useState([])
   const [activeCategory, setActiveCategory] = useState('todos')
+
+  const wardrobeHelpProps = useLongPressHelp('profile_wardrobe', { onClick: () => setShowWardrobe(true) })
+  const logoutHelpProps = useLongPressHelp('profile_logout', { onClick: signOut })
+  const wardrobeCloseProps = useLongPressHelp('wardrobe_close', { onClick: () => setShowWardrobe(false) })
+  const wardrobeDoneProps = useLongPressHelp('wardrobe_done', { onClick: () => setShowWardrobe(false) })
 
   useEffect(() => {
     api.statsSummary().then(setStats).catch(() => setStats(null))
@@ -102,7 +108,8 @@ export default function Profile() {
         {/* Botón para abrir el Armario / Ropero */}
         <div style={{ marginTop: '12px' }}>
           <button
-            onClick={() => setShowWardrobe(true)}
+            {...wardrobeHelpProps}
+            title="Personalizar avatar (mantén presionado para ver ayuda)"
             style={{
               padding: '8px 16px',
               borderRadius: '20px',
@@ -234,7 +241,7 @@ export default function Profile() {
       </div>
 
       <div className="profile-actions">
-        <button className="btn btn-ghost" onClick={signOut}>
+        <button className="btn btn-ghost" {...logoutHelpProps} title="Cerrar sesión (mantén presionado para ver ayuda)">
           <LogOut size={16} style={{ marginRight: 6 }} />
           Cerrar sesión
         </button>
@@ -266,7 +273,8 @@ export default function Profile() {
           }}>
             {/* Cerrar modal */}
             <button
-              onClick={() => setShowWardrobe(false)}
+              {...wardrobeCloseProps}
+              title="Cerrar armario (mantén presionado para ver ayuda)"
               style={{
                 position: 'absolute',
                 top: '16px',
@@ -398,7 +406,8 @@ export default function Profile() {
             )}
 
             <button
-              onClick={() => setShowWardrobe(false)}
+              {...wardrobeDoneProps}
+              title="Terminar personalización (mantén presionado para ver ayuda)"
               style={{
                 width: '100%',
                 marginTop: '20px',
