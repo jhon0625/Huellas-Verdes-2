@@ -252,7 +252,7 @@ async def get_or_generate_species_info(key: str) -> SpeciesResponse:
             )
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-3.8-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -330,7 +330,7 @@ async def identify_species(file: UploadFile = File(...)):
             )
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-3.8-flash",
                     contents=[
                         prompt,
                         types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
