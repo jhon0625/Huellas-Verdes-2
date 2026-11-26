@@ -11,9 +11,15 @@
 -- 5. Las huellas quedan registradas de forma fija en su perfil.
 -- =========================================================
 
--- 1. Agregar columna de huellas a la tabla profiles
+-- 1. Agregar columnas de huellas, inventario y vestuario a la tabla profiles
 alter table public.profiles
   add column if not exists huellas integer not null default 0 check (huellas >= 0);
+
+alter table public.profiles
+  add column if not exists inventory jsonb not null default '[]'::jsonb;
+
+alter table public.profiles
+  add column if not exists equipped jsonb not null default '{}'::jsonb;
 
 -- 2. Agregar columna para rastrear el estado de la recompensa en threats
 -- Evita duplicar recompensas o penalizaciones si entran más de 3 votos.
@@ -43,8 +49,8 @@ begin
 
   -- Contar votos confirmados y descartados
   select
-    coalesce(count(*) filter (where confirms = true), 0),
-    coalesce(count(*) filter (where confirms = false), 0)
+    count(*) filter (where confirms = true),
+    count(*) filter (where confirms = false)
   into v_confirms, v_dismissals
   from public.threat_validations
   where threat_id = target_threat_id;

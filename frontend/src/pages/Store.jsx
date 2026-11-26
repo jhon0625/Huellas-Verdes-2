@@ -7,11 +7,11 @@ import { useAuth } from '../context/AuthContext'
 import { useLongPressHelp } from '../context/HelpContext'
 
 export default function Store() {
-  const { updateProfile } = useAuth()
+  const { profile: authProfile, refreshProfile, updateProfile } = useAuth()
   const [profile, setProfile] = useState({
-    huellas: 0,
-    inventory: [],
-    equipped: DEFAULT_EQUIPPED
+    huellas: authProfile?.huellas ?? 0,
+    inventory: Array.isArray(authProfile?.inventory) ? authProfile.inventory : [],
+    equipped: authProfile?.equipped || DEFAULT_EQUIPPED
   })
   const [activeCategory, setActiveCategory] = useState('todos')
   const [loading, setLoading] = useState(true)
@@ -20,24 +20,44 @@ export default function Store() {
   const refreshHelpProps = useLongPressHelp('store_refresh', { onClick: () => fetchProfile() })
 
   useEffect(() => {
+    if (authProfile) {
+      setProfile({
+        huellas: authProfile.huellas ?? 0,
+        inventory: Array.isArray(authProfile.inventory) ? authProfile.inventory : [],
+        equipped: authProfile.equipped || DEFAULT_EQUIPPED
+      })
+    }
+  }, [authProfile])
+
+  useEffect(() => {
     fetchProfile()
   }, [])
 
   const fetchProfile = async () => {
     try {
       setLoading(true)
+      const fresh = await refreshProfile?.()
+      if (fresh) {
+        setProfile({
+          huellas: fresh.huellas ?? 0,
+          inventory: Array.isArray(fresh.inventory) ? fresh.inventory : [],
+          equipped: fresh.equipped || DEFAULT_EQUIPPED
+        })
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('huellas, inventory, equipped')
+          .select('*')
           .eq('id', user.id)
           .single()
 
         if (!error && data) {
           setProfile({
-            huellas: data.huellas ?? 5000,
+            huellas: data.huellas ?? 0,
             inventory: Array.isArray(data.inventory) ? data.inventory : [],
             equipped: data.equipped || DEFAULT_EQUIPPED
           })
