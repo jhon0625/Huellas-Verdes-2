@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const STORAGE_KEY = 'huellas_education_chat_history'
 const ONE_HOUR_MS = 60 * 60 * 1000 // 1 hora en milisegundos
 
@@ -174,7 +173,7 @@ export default function Education() {
       const formData = new FormData()
       formData.append('file', compressedBlob, 'species.jpg')
 
-      const response = await fetch(`${API_URL}/api/identify-species`, {
+      const response = await fetch('/api/identify-species', {
         method: 'POST',
         body: formData,
         signal: controller.signal

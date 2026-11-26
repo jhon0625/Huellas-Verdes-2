@@ -9,6 +9,8 @@ import torch
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -41,7 +43,7 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {
         "status": "ok",
@@ -66,7 +68,7 @@ class Threat(BaseModel):
     distance_km: Optional[float] = None
 
 
-@app.get("/threats/nearby", response_model=list[Threat])
+@app.get("/api/threats/nearby", response_model=list[Threat])
 def threats_nearby(
     lat: float = Query(..., description="Latitud del usuario"),
     lng: float = Query(..., description="Longitud del usuario"),
@@ -95,7 +97,7 @@ class DuplicateCheckRequest(BaseModel):
     radius_meters: float = 300
 
 
-@app.post("/threats/check-duplicates")
+@app.post("/api/threats/check-duplicates")
 def check_duplicates(payload: DuplicateCheckRequest):
     """Antes de crear un reporte, el frontend consulta este endpoint para
     saber si ya existe una amenaza muy cercana (posible duplicado)."""
@@ -115,7 +117,7 @@ def check_duplicates(payload: DuplicateCheckRequest):
     return {"possible_duplicates": matches}
 
 
-@app.get("/volunteer-calls/nearby")
+@app.get("/api/volunteer-calls/nearby")
 def volunteer_calls_nearby(
     lat: float = Query(...),
     lng: float = Query(...),
@@ -142,7 +144,7 @@ def volunteer_calls_nearby(
     return results
 
 
-@app.get("/stats/summary")
+@app.get("/api/stats/summary")
 def stats_summary():
     """Números generales para un panel simple: total de amenazas,
     confirmadas, y voluntariados activos."""
@@ -448,3 +450,38 @@ async def identify_species(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al analizar la imagen: {str(e)}")
+
+
+# ==================== SERVIR FRONTEND COMPILADO (REACT + VITE) ====================
+
+FRONTEND_DIST_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+)
+FRONTEND_ASSETS_DIR = os.path.join(FRONTEND_DIST_DIR, "assets")
+
+if os.path.isdir(FRONTEND_ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=FRONTEND_ASSETS_DIR), name="assets")
+
+
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str):
+    if full_path == "api" or full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Ruta de API no encontrada")
+
+    if os.path.isdir(FRONTEND_DIST_DIR):
+        candidate = os.path.realpath(os.path.join(FRONTEND_DIST_DIR, full_path))
+        if (
+            full_path
+            and candidate.startswith(os.path.realpath(FRONTEND_DIST_DIR) + os.sep)
+            and os.path.isfile(candidate)
+        ):
+            return FileResponse(candidate)
+
+        index_path = os.path.join(FRONTEND_DIST_DIR, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Frontend no compilado. Ejecuta 'npm run build' en la carpeta frontend.",
+    )

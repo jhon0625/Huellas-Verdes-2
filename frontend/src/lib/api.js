@@ -1,18 +1,5 @@
-const getApiUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    return envUrl
-  }
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    return `http://${window.location.hostname}:8000`
-  }
-  return envUrl || 'http://localhost:8000'
-}
-
-const API_URL = getApiUrl()
-
 async function request(path, options = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
@@ -24,15 +11,15 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  health: () => request('/health'),
+  health: () => request('/api/health'),
   threatsNearby: (lat, lng, radiusKm = 5) =>
-    request(`/threats/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
+    request(`/api/threats/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
   checkDuplicates: (lat, lng, radiusMeters = 300) =>
-    request('/threats/check-duplicates', {
+    request('/api/threats/check-duplicates', {
       method: 'POST',
       body: JSON.stringify({ lat, lng, radius_meters: radiusMeters }),
     }),
   volunteerCallsNearby: (lat, lng, radiusKm = 15) =>
-    request(`/volunteer-calls/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
-  statsSummary: () => request('/stats/summary'),
+    request(`/api/volunteer-calls/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`),
+  statsSummary: () => request('/api/stats/summary'),
 }
