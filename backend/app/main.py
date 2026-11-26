@@ -208,6 +208,67 @@ class SpeciesResponse(BaseModel):
     consejo_proteccion: str
 
 
+GEMINI_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+]
+
+
+def _error_species_response(mensaje: str) -> SpeciesResponse:
+    return SpeciesResponse(
+        es_ser_vivo=False,
+        mensaje_error=mensaje,
+        nombre_comun="",
+        nombre_cientifico="",
+        categoria="",
+        nivel_alerta="ninguna",
+        advertencia_seguridad="",
+        habitat="",
+        rol_ecologico="",
+        estado_conservacion="",
+        dato_curioso="",
+        consejo_proteccion="",
+    )
+
+
+async def _call_gemini_species(
+    api_key: str, contents, timeout_per_model: float = 18.0
+) -> SpeciesResponse:
+    """Llama a Gemini probando modelos de respaldo ante saturación (503) o no disponibilidad."""
+    client = genai.Client(api_key=api_key)
+    last_error = None
+
+    for attempt in range(2):
+        for model_name in GEMINI_MODELS:
+            try:
+                response = await asyncio.wait_for(
+                    client.aio.models.generate_content(
+                        model=model_name,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema=SpeciesResponse,
+                            temperature=0.2,
+                        ),
+                    ),
+                    timeout=timeout_per_model,
+                )
+                return SpeciesResponse.model_validate_json(response.text)
+            except Exception as e:
+                last_error = e
+                err_text = str(e)
+                print(f"Gemini ({model_name}, intento {attempt + 1}) falló: {err_text}")
+                # Si es error de clave inválida, no tiene sentido seguir probando modelos
+                if "API_KEY_INVALID" in err_text or "401" in err_text or "403" in err_text:
+                    raise
+
+        if attempt == 0:
+            await asyncio.sleep(2.0)
+
+    raise last_error or RuntimeError("No se obtuvo respuesta de Gemini.")
+
+
 async def get_or_generate_species_info(key: str) -> SpeciesResponse:
     """Devuelve la ficha desde catalogo.json o la genera con Gemini y la guarda en caché."""
     if key in species_catalog:
@@ -237,7 +298,6 @@ async def get_or_generate_species_info(key: str) -> SpeciesResponse:
 
     if api_key:
         try:
-            client = genai.Client(api_key=api_key)
             prompt = (
                 f"Eres un biólogo experto de 'Huellas Verdes' en Colombia. "
                 f"Genera una ficha educativa precisa y específica en español para la especie '{readable_name}' "
@@ -250,19 +310,7 @@ async def get_or_generate_species_info(key: str) -> SpeciesResponse:
                 f"o 'ninguna' (si es completamente inofensiva). En 'advertencia_seguridad' escribe una recomendación "
                 f"específica sobre esta especie para el ciudadano."
             )
-            response = await asyncio.wait_for(
-                client.aio.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=SpeciesResponse,
-                        temperature=0.2,
-                    ),
-                ),
-                timeout=15.0,
-            )
-            parsed = SpeciesResponse.model_validate_json(response.text)
+            parsed = await _call_gemini_species(api_key, prompt)
             species_catalog[key] = parsed.model_dump(exclude={"es_ser_vivo", "mensaje_error"})
             save_catalog()
             return parsed
@@ -298,26 +346,12 @@ async def identify_species(file: UploadFile = File(...)):
 
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            return SpeciesResponse(
-                es_ser_vivo=False,
-                mensaje_error=(
-                    "La clave GEMINI_API_KEY no está configurada en el servidor. "
-                    "Pídele al administrador que la agregue en las variables de entorno."
-                ),
-                nombre_comun="",
-                nombre_cientifico="",
-                categoria="",
-                nivel_alerta="ninguna",
-                advertencia_seguridad="",
-                habitat="",
-                rol_ecologico="",
-                estado_conservacion="",
-                dato_curioso="",
-                consejo_proteccion="",
+            return _error_species_response(
+                "La clave GEMINI_API_KEY no está configurada en el servidor. "
+                "Pídele al administrador que la agregue en las variables de entorno."
             )
 
         try:
-            client = genai.Client(api_key=api_key)
             prompt = (
                 "Eres el biólogo experto de la app 'Huellas Verdes'. Analiza esta imagen. "
                 "Si NO es un ser vivo real (por ejemplo: un objeto, vehículo, edificio, pantalla, dibujo o paisaje sin foco), "
@@ -328,22 +362,13 @@ async def identify_species(file: UploadFile = File(...)):
                 "o requiere precaución, redacta 'advertencia_seguridad' como recomendación prioritaria para el usuario, "
                 "y completa el resto de la ficha educativa en español."
             )
-            response = await asyncio.wait_for(
-                client.aio.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=[
-                        prompt,
-                        types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
-                    ],
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=SpeciesResponse,
-                        temperature=0.2,
-                    ),
-                ),
-                timeout=30.0,
+            parsed = await _call_gemini_species(
+                api_key,
+                [
+                    prompt,
+                    types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
+                ],
             )
-            parsed = SpeciesResponse.model_validate_json(response.text)
 
             if parsed.es_ser_vivo and parsed.nombre_comun:
                 new_key = (
@@ -365,37 +390,18 @@ async def identify_species(file: UploadFile = File(...)):
 
             return parsed
         except asyncio.TimeoutError:
-            return SpeciesResponse(
-                es_ser_vivo=False,
-                mensaje_error="La IA tardó demasiado en responder. Intenta de nuevo en unos segundos.",
-                nombre_comun="",
-                nombre_cientifico="",
-                categoria="",
-                nivel_alerta="ninguna",
-                advertencia_seguridad="",
-                habitat="",
-                rol_ecologico="",
-                estado_conservacion="",
-                dato_curioso="",
-                consejo_proteccion="",
+            return _error_species_response(
+                "La IA tardó demasiado en responder. Intenta de nuevo en unos segundos."
             )
         except Exception as e:
             error_str = str(e)
             print(f"Error Gemini Vision: {error_str}")
-            return SpeciesResponse(
-                es_ser_vivo=False,
-                mensaje_error=f"Error al conectar con Gemini: {error_str[:200]}",
-                nombre_comun="",
-                nombre_cientifico="",
-                categoria="",
-                nivel_alerta="ninguna",
-                advertencia_seguridad="",
-                habitat="",
-                rol_ecologico="",
-                estado_conservacion="",
-                dato_curioso="",
-                consejo_proteccion="",
-            )
+            if "503" in error_str or "UNAVAILABLE" in error_str:
+                return _error_species_response(
+                    "Los servidores de Gemini están temporalmente saturados por alta demanda. "
+                    "Por favor espera unos segundos e intenta de nuevo."
+                )
+            return _error_species_response(f"Error al conectar con Gemini: {error_str[:200]}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al analizar la imagen: {str(e)}")
