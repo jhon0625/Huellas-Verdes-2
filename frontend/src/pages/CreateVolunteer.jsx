@@ -104,7 +104,8 @@ export default function CreateVolunteer() {
     title: '',
     description: '',
     location_name: '',
-    event_date: '',
+    event_day: '',
+    event_time: '',
   })
 
   // Coordenadas exactas para el evento (inicialmente GPS o El Peñol)
@@ -157,10 +158,17 @@ export default function CreateVolunteer() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.title.trim() || !form.event_date) {
-      setError('Por favor completa el título y la fecha del evento.')
+    if (!form.title.trim() || !form.event_day || !form.event_time) {
+      setError('Por favor completa el título, la fecha y la hora del evento.')
       return
     }
+
+    const scheduledDate = new Date(`${form.event_day}T${form.event_time}`)
+    if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+      setError('La fecha y hora del voluntariado deben ser posteriores al momento actual.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -172,7 +180,7 @@ export default function CreateVolunteer() {
         location_name: form.location_name.trim() || null,
         lat: coords.lat,
         lng: coords.lng,
-        event_date: new Date(form.event_date).toISOString(),
+        event_date: scheduledDate.toISOString(),
         max_volunteers: null, // Sin límite de participantes
         huellas_reward: 5000, // Recompensa fija de 5000 huellas
         checkin_code: randomCode(),
@@ -310,18 +318,35 @@ export default function CreateVolunteer() {
           </div>
 
           {/* Fecha y hora */}
-          <div>
-            <label style={labelStyle}>
-              <Clock size={15} color="#2e7d32" />
-              Fecha y hora de inicio *
-            </label>
-            <input
-              type="datetime-local"
-              required
-              value={form.event_date}
-              onChange={setField('event_date')}
-              style={inputStyle}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>
+                <Calendar size={15} color="#2e7d32" />
+                Fecha *
+              </label>
+              <input
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                value={form.event_day}
+                onChange={setField('event_day')}
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>
+                <Clock size={15} color="#2e7d32" />
+                Hora *
+              </label>
+              <input
+                type="time"
+                required
+                value={form.event_time}
+                onChange={setField('event_time')}
+                style={inputStyle}
+              />
+            </div>
           </div>
 
           {/* Recompensa fija (no editable) */}

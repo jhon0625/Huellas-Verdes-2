@@ -20,18 +20,23 @@ export default function Volunteers() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      const nowIso = new Date().toISOString()
       const { data, error } = await supabase
         .from('volunteer_events')
         .select('*')
-        .in('status', ['open', 'closed', 'done'])
+        .in('status', ['open', 'closed'])
+        .gt('event_date', nowIso)
         .order('event_date', { ascending: true })
 
       if (error) throw error
-      setEvents(data ?? [])
+      const activeEvents = (data ?? []).filter(
+        (ev) => new Date(ev.event_date).getTime() > Date.now()
+      )
+      setEvents(activeEvents)
 
-      // Cargar conteo de inscripciones para cada evento
-      if (data && data.length > 0) {
-        const ids = data.map((e) => e.id)
+      // Cargar conteo de inscripciones para cada evento activo
+      if (activeEvents.length > 0) {
+        const ids = activeEvents.map((e) => e.id)
         const { data: regs } = await supabase
           .from('volunteer_registrations')
           .select('event_id')

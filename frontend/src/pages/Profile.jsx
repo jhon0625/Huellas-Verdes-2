@@ -23,8 +23,58 @@ export default function Profile() {
   const wardrobeDoneProps = useLongPressHelp('wardrobe_done', { onClick: () => setShowWardrobe(false) })
 
   useEffect(() => {
-    api.statsSummary().then(setStats).catch(() => setStats(null))
+    let active = true
+
+    async function loadCommunityStats() {
+      try {
+        const { data: threatsData, error: threatsErr } = await supabase
+          .from('threats')
+          .select('id, status')
+
+        if (!threatsErr && threatsData) {
+          const { data: validationsData } = await supabase
+            .from('threat_validations')
+            .select('threat_id, confirms')
+
+          const confirmCounts = {}
+          ;(validationsData ?? []).forEach((v) => {
+            if (v.confirms) {
+              confirmCounts[v.threat_id] = (confirmCounts[v.threat_id] ?? 0) + 1
+            }
+          })
+
+          const total_threats = threatsData.length
+          const confirmed_threats = threatsData.filter(
+            (t) => t.status === 'confirmado' || (confirmCounts[t.id] ?? 0) >= 3
+          ).length
+          const resolved_threats = threatsData.filter((t) => t.status === 'resuelto').length
+
+          if (active) {
+            setStats({ total_threats, confirmed_threats, resolved_threats })
+          }
+          return
+        }
+      } catch (err) {
+        console.warn('Error cargando estadísticas desde Supabase:', err)
+      }
+
+      // Respaldo mediante backend API
+      api
+        .statsSummary()
+        .then((res) => {
+          if (active) setStats(res)
+        })
+        .catch(() => {
+          if (active) setStats({ total_threats: 0, confirmed_threats: 0, resolved_threats: 0 })
+        })
+    }
+
+    loadCommunityStats()
     refreshProfile?.()
+
+    return () => {
+      active = false
+    }
   }, [refreshProfile])
 
   useEffect(() => {

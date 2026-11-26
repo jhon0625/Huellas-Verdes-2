@@ -78,7 +78,11 @@ export default function VolunteerDetail() {
   }, [load])
 
   const handleJoin = async () => {
-    if (!user) return
+    if (!user || !event) return
+    if (new Date(event.event_date).getTime() <= Date.now()) {
+      setMsg({ type: 'err', text: 'La fecha y hora de este voluntariado ya pasaron. Las inscripciones están cerradas.' })
+      return
+    }
     setJoining(true)
     setMsg(null)
     try {
@@ -133,7 +137,8 @@ export default function VolunteerDetail() {
     minute: '2-digit',
   })
 
-  const canJoin = event.status === 'open' && !myReg
+  const isExpired = new Date(event.event_date).getTime() <= Date.now()
+  const canJoin = event.status === 'open' && !myReg && !isExpired
 
   return (
     <div className="section-screen" style={{ paddingBottom: 90 }}>
@@ -274,6 +279,21 @@ export default function VolunteerDetail() {
         {/* Acciones del ciudadano */}
         {!isMyEvent && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {isExpired && !myReg && (
+              <div
+                style={{
+                  background: '#fff3e0',
+                  border: '1px solid #ffb74d',
+                  color: '#e65100',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Este voluntariado ya alcanzó su fecha y hora de inicio. No se admiten nuevas inscripciones.
+              </div>
+            )}
             {canJoin && (
               <button className="btn-primary" disabled={joining} {...joinHelpProps} title="Inscribirme (mantén presionado para ver ayuda)">
                 {joining ? 'Inscribiendo...' : '✋ Inscribirme'}
