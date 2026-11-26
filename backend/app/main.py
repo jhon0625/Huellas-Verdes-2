@@ -2,10 +2,10 @@ import asyncio
 import io
 import json
 import os
+import threading
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-import torch
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +15,6 @@ from google import genai
 from google.genai import types
 from PIL import Image
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer, util
 
 from .geo import haversine_km
 from .supabase_client import get_supabase
@@ -170,15 +169,32 @@ SPECIES_DIR = BASE_DIR / "especies"
 CATALOG_PATH = SPECIES_DIR / "catalogo.json"
 EMBEDDINGS_CACHE_PATH = SPECIES_DIR / "embeddings_cache.json"
 
-print("Inicializando motor visual CLIP...")
-clip_model = SentenceTransformer("clip-ViT-B-32")
-reference_embeddings: dict[str, torch.Tensor] = {}
+clip_model = None
+_clip_lock = threading.Lock()
+reference_embeddings: dict[str, Any] = {}
 species_catalog: dict[str, dict] = {}
+
+
+def get_clip_model():
+    """Carga CLIP y el catálogo de especies de forma diferida para no bloquear el arranque del servidor."""
+    global clip_model
+    if clip_model is not None:
+        return clip_model
+
+    with _clip_lock:
+        if clip_model is None:
+            print("Inicializando motor visual CLIP...")
+            from sentence_transformers import SentenceTransformer
+
+            clip_model = SentenceTransformer("clip-ViT-B-32")
+            load_reference_species()
+    return clip_model
 
 
 def load_reference_species():
     """Carga huellas precalculadas desde embeddings_cache.json o indexa fotos nuevas."""
     global reference_embeddings, species_catalog
+    import torch
 
     if CATALOG_PATH.exists():
         try:
@@ -240,9 +256,6 @@ def save_embeddings_cache(cached_vectors: dict[str, list[float]]):
             json.dump(cached_vectors, f)
     except Exception as e:
         print(f"No se pudo guardar embeddings_cache.json: {e}")
-
-
-load_reference_species()
 
 
 class SpeciesResponse(BaseModel):
@@ -349,7 +362,10 @@ async def identify_species(file: UploadFile = File(...)):
     try:
         image_bytes = await file.read()
         user_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        user_emb = clip_model.encode(user_img, convert_to_tensor=True)
+        model = await asyncio.to_thread(get_clip_model)
+        from sentence_transformers import util
+
+        user_emb = model.encode(user_img, convert_to_tensor=True)
 
         best_key = None
         best_score = -1.0
