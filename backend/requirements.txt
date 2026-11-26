@@ -5,6 +5,4 @@ python-dotenv==1.0.1
 pydantic==2.9.2
 google-genai
 python-multipart
-
-sentence-transformers
 pillow

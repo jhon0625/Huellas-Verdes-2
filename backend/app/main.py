@@ -2,9 +2,8 @@ import asyncio
 import io
 import json
 import os
-import threading
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
@@ -47,7 +46,7 @@ def health():
     return {
         "status": "ok",
         "service": "huellas-verdes-api",
-        "indexed_species": len(reference_embeddings),
+        "indexed_species": len(species_catalog),
     }
 
 
@@ -162,82 +161,24 @@ def stats_summary():
     }
 
 
-# ==================== MÓDULO EDUCATIVO (COMPARACIÓN VISUAL HÍBRIDA) ====================
+# ==================== MÓDULO EDUCATIVO (CATÁLOGO LOCAL + GEMINI VISION) ====================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SPECIES_DIR = BASE_DIR / "especies"
 CATALOG_PATH = SPECIES_DIR / "catalogo.json"
-EMBEDDINGS_CACHE_PATH = SPECIES_DIR / "embeddings_cache.json"
 
-clip_model = None
-_clip_lock = threading.Lock()
-reference_embeddings: dict[str, Any] = {}
 species_catalog: dict[str, dict] = {}
 
 
-def get_clip_model():
-    """Carga CLIP y el catálogo de especies de forma diferida para no bloquear el arranque del servidor."""
-    global clip_model
-    if clip_model is not None:
-        return clip_model
-
-    with _clip_lock:
-        if clip_model is None:
-            print("Inicializando motor visual CLIP...")
-            from sentence_transformers import SentenceTransformer
-
-            clip_model = SentenceTransformer("clip-ViT-B-32")
-            load_reference_species()
-    return clip_model
-
-
-def load_reference_species():
-    """Carga huellas precalculadas desde embeddings_cache.json o indexa fotos nuevas."""
-    global reference_embeddings, species_catalog
-    import torch
-
+def load_species_catalog():
+    """Carga el catálogo ligero de especies desde catalogo.json sin usar PyTorch ni CLIP."""
+    global species_catalog
     if CATALOG_PATH.exists():
         try:
             with open(CATALOG_PATH, "r", encoding="utf-8") as f:
                 species_catalog = json.load(f)
         except Exception:
             species_catalog = {}
-
-    cached_vectors: dict[str, list[float]] = {}
-    if EMBEDDINGS_CACHE_PATH.exists():
-        try:
-            with open(EMBEDDINGS_CACHE_PATH, "r", encoding="utf-8") as f:
-                cached_vectors = json.load(f)
-        except Exception:
-            cached_vectors = {}
-
-    cache_updated = False
-
-    if SPECIES_DIR.exists():
-        valid_exts = {".jpg", ".jpeg", ".png", ".webp"}
-        for img_path in sorted(SPECIES_DIR.iterdir()):
-            if img_path.suffix.lower() in valid_exts:
-                key = img_path.stem
-                if key in cached_vectors:
-                    reference_embeddings[key] = torch.tensor(cached_vectors[key])
-                else:
-                    try:
-                        img = Image.open(img_path).convert("RGB")
-                        emb = clip_model.encode(img, convert_to_tensor=True)
-                        reference_embeddings[key] = emb
-                        cached_vectors[key] = emb.cpu().tolist()
-                        cache_updated = True
-                    except Exception as e:
-                        print(f"No se pudo indexar {img_path.name}: {e}")
-
-    for key, vec in cached_vectors.items():
-        if key not in reference_embeddings:
-            reference_embeddings[key] = torch.tensor(vec)
-
-    if cache_updated:
-        save_embeddings_cache(cached_vectors)
-
-    print(f"Especies listas para comparación: {len(reference_embeddings)}")
 
 
 def save_catalog():
@@ -249,13 +190,7 @@ def save_catalog():
         print(f"No se pudo guardar catalogo.json: {e}")
 
 
-def save_embeddings_cache(cached_vectors: dict[str, list[float]]):
-    try:
-        SPECIES_DIR.mkdir(parents=True, exist_ok=True)
-        with open(EMBEDDINGS_CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(cached_vectors, f)
-    except Exception as e:
-        print(f"No se pudo guardar embeddings_cache.json: {e}")
+load_species_catalog()
 
 
 class SpeciesResponse(BaseModel):
@@ -353,36 +288,14 @@ async def get_or_generate_species_info(key: str) -> SpeciesResponse:
 
 @app.post("/api/identify-species", response_model=SpeciesResponse)
 async def identify_species(file: UploadFile = File(...)):
-    """1. Compara contra el catálogo local.
-    2. Si no coincide, usa Gemini Vision como respaldo para identificar seres vivos
-       fuera del catálogo y aprenderlos automáticamente en caché."""
+    """Identifica seres vivos usando Gemini Vision (sin PyTorch/CLIP) y guarda fichas en catalogo.json."""
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="El archivo enviado debe ser una imagen válida.")
 
     try:
         image_bytes = await file.read()
-        user_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        model = await asyncio.to_thread(get_clip_model)
-        from sentence_transformers import util
+        Image.open(io.BytesIO(image_bytes)).verify()
 
-        user_emb = model.encode(user_img, convert_to_tensor=True)
-
-        best_key = None
-        best_score = -1.0
-
-        for key, ref_emb in reference_embeddings.items():
-            score = float(util.cos_sim(user_emb, ref_emb)[0][0])
-            if score > best_score:
-                best_score = score
-                best_key = key
-
-        print(f"Coincidencia local: {best_key} (similitud: {best_score:.2f})")
-
-        # Nivel 1: Coincidencia clara en tu catálogo local
-        if best_score >= 0.68 and best_key:
-            return await get_or_generate_species_info(best_key)
-
-        # Nivel 2: No está en el catálogo -> Validar con Gemini Vision si es otro ser vivo
         api_key = os.getenv("GEMINI_API_KEY")
         if api_key:
             try:
@@ -431,16 +344,6 @@ async def identify_species(file: UploadFile = File(...)):
                             exclude={"es_ser_vivo", "mensaje_error"}
                         )
                         save_catalog()
-                        reference_embeddings[new_key] = user_emb
-                        cached = {}
-                        if EMBEDDINGS_CACHE_PATH.exists():
-                            try:
-                                with open(EMBEDDINGS_CACHE_PATH, "r", encoding="utf-8") as f:
-                                    cached = json.load(f)
-                            except Exception:
-                                cached = {}
-                        cached[new_key] = user_emb.cpu().tolist()
-                        save_embeddings_cache(cached)
 
                 return parsed
             except Exception as e:
@@ -449,8 +352,8 @@ async def identify_species(file: UploadFile = File(...)):
         return SpeciesResponse(
             es_ser_vivo=False,
             mensaje_error=(
-                "Esta especie aún no forma parte de nuestro inventario regional de Huellas Verdes. "
-                "Prueba con otra planta o animal de tu entorno."
+                "No se pudo identificar la especie en este momento. "
+                "Verifica la conexión o la clave GEMINI_API_KEY e intenta de nuevo."
             ),
             nombre_comun="",
             nombre_cientifico="",
