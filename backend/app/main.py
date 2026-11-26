@@ -252,7 +252,7 @@ async def get_or_generate_species_info(key: str) -> SpeciesResponse:
             )
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model="gemini-3.8-flash",
+                    model="gemini-2.0-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -297,75 +297,105 @@ async def identify_species(file: UploadFile = File(...)):
         Image.open(io.BytesIO(image_bytes)).verify()
 
         api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
-            try:
-                client = genai.Client(api_key=api_key)
-                prompt = (
-                    "Eres el biólogo experto de la app 'Huellas Verdes'. Analiza esta imagen. "
-                    "Si NO es un ser vivo real (por ejemplo: un objeto, vehículo, edificio, pantalla, dibujo o paisaje sin foco), "
-                    "responde con 'es_ser_vivo': false, 'nivel_alerta': 'ninguna', 'advertencia_seguridad': '' "
-                    "y en 'mensaje_error' explica brevemente qué ves y pide enfocar una planta o animal. "
-                    "Si SÍ es un animal, planta, hongo o insecto real (silvestre o doméstico), responde con 'es_ser_vivo': true, "
-                    "'mensaje_error': '', evalúa en 'nivel_alerta' ('peligro', 'precaucion' o 'ninguna') si es venenosa, tóxica "
-                    "o requiere precaución, redacta 'advertencia_seguridad' como recomendación prioritaria para el usuario, "
-                    "y completa el resto de la ficha educativa en español."
-                )
-                response = await asyncio.wait_for(
-                    client.aio.models.generate_content(
-                        model="gemini-3.8-flash",
-                        contents=[
-                            prompt,
-                            types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
-                        ],
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            response_schema=SpeciesResponse,
-                            temperature=0.2,
-                        ),
+        if not api_key:
+            return SpeciesResponse(
+                es_ser_vivo=False,
+                mensaje_error=(
+                    "La clave GEMINI_API_KEY no está configurada en el servidor. "
+                    "Pídele al administrador que la agregue en las variables de entorno."
+                ),
+                nombre_comun="",
+                nombre_cientifico="",
+                categoria="",
+                nivel_alerta="ninguna",
+                advertencia_seguridad="",
+                habitat="",
+                rol_ecologico="",
+                estado_conservacion="",
+                dato_curioso="",
+                consejo_proteccion="",
+            )
+
+        try:
+            client = genai.Client(api_key=api_key)
+            prompt = (
+                "Eres el biólogo experto de la app 'Huellas Verdes'. Analiza esta imagen. "
+                "Si NO es un ser vivo real (por ejemplo: un objeto, vehículo, edificio, pantalla, dibujo o paisaje sin foco), "
+                "responde con 'es_ser_vivo': false, 'nivel_alerta': 'ninguna', 'advertencia_seguridad': '' "
+                "y en 'mensaje_error' explica brevemente qué ves y pide enfocar una planta o animal. "
+                "Si SÍ es un animal, planta, hongo o insecto real (silvestre o doméstico), responde con 'es_ser_vivo': true, "
+                "'mensaje_error': '', evalúa en 'nivel_alerta' ('peligro', 'precaucion' o 'ninguna') si es venenosa, tóxica "
+                "o requiere precaución, redacta 'advertencia_seguridad' como recomendación prioritaria para el usuario, "
+                "y completa el resto de la ficha educativa en español."
+            )
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=[
+                        prompt,
+                        types.Part.from_bytes(data=image_bytes, mime_type=file.content_type),
+                    ],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=SpeciesResponse,
+                        temperature=0.2,
                     ),
-                    timeout=15.0,
+                ),
+                timeout=30.0,
+            )
+            parsed = SpeciesResponse.model_validate_json(response.text)
+
+            if parsed.es_ser_vivo and parsed.nombre_comun:
+                new_key = (
+                    parsed.nombre_comun.lower()
+                    .strip()
+                    .replace(" ", "-")
+                    .replace("á", "a")
+                    .replace("é", "e")
+                    .replace("í", "i")
+                    .replace("ó", "o")
+                    .replace("ú", "u")
+                    .replace("ñ", "n")
                 )
-                parsed = SpeciesResponse.model_validate_json(response.text)
-
-                if parsed.es_ser_vivo and parsed.nombre_comun:
-                    new_key = (
-                        parsed.nombre_comun.lower()
-                        .strip()
-                        .replace(" ", "-")
-                        .replace("á", "a")
-                        .replace("é", "e")
-                        .replace("í", "i")
-                        .replace("ó", "o")
-                        .replace("ú", "u")
-                        .replace("ñ", "n")
+                if new_key and new_key not in species_catalog:
+                    species_catalog[new_key] = parsed.model_dump(
+                        exclude={"es_ser_vivo", "mensaje_error"}
                     )
-                    if new_key and new_key not in species_catalog:
-                        species_catalog[new_key] = parsed.model_dump(
-                            exclude={"es_ser_vivo", "mensaje_error"}
-                        )
-                        save_catalog()
+                    save_catalog()
 
-                return parsed
-            except Exception as e:
-                print(f"Respaldo Gemini no disponible: {e}")
-
-        return SpeciesResponse(
-            es_ser_vivo=False,
-            mensaje_error=(
-                "No se pudo identificar la especie en este momento. "
-                "Verifica la conexión o la clave GEMINI_API_KEY e intenta de nuevo."
-            ),
-            nombre_comun="",
-            nombre_cientifico="",
-            categoria="",
-            nivel_alerta="ninguna",
-            advertencia_seguridad="",
-            habitat="",
-            rol_ecologico="",
-            estado_conservacion="",
-            dato_curioso="",
-            consejo_proteccion="",
-        )
+            return parsed
+        except asyncio.TimeoutError:
+            return SpeciesResponse(
+                es_ser_vivo=False,
+                mensaje_error="La IA tardó demasiado en responder. Intenta de nuevo en unos segundos.",
+                nombre_comun="",
+                nombre_cientifico="",
+                categoria="",
+                nivel_alerta="ninguna",
+                advertencia_seguridad="",
+                habitat="",
+                rol_ecologico="",
+                estado_conservacion="",
+                dato_curioso="",
+                consejo_proteccion="",
+            )
+        except Exception as e:
+            error_str = str(e)
+            print(f"Error Gemini Vision: {error_str}")
+            return SpeciesResponse(
+                es_ser_vivo=False,
+                mensaje_error=f"Error al conectar con Gemini: {error_str[:200]}",
+                nombre_comun="",
+                nombre_cientifico="",
+                categoria="",
+                nivel_alerta="ninguna",
+                advertencia_seguridad="",
+                habitat="",
+                rol_ecologico="",
+                estado_conservacion="",
+                dato_curioso="",
+                consejo_proteccion="",
+            )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al analizar la imagen: {str(e)}")
